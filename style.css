@@ -381,6 +381,59 @@ body {
 }
 .formulario button:hover { filter: brightness(1.08); }
 
+/* ===== APP PRÓPRIA: MEU HUMOR (só CSS) ===== */
+.humor { text-align: center; }
+.humor input[type="radio"] { display: none; }
+
+.humor-opcoes {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin: 12px 0 20px;
+}
+.humor-opcoes label {
+  font-size: 40px;
+  width: 70px;
+  height: 70px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--rosa-claro);
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+.humor-opcoes label:hover { transform: scale(1.12); }
+
+.humor-tela {
+  padding: 30px 20px;
+  border-radius: 14px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--branco);
+  transition: background 0.4s;
+}
+.msg { display: none; margin: 0 !important; }
+
+/* muda a cor e a mensagem conforme o humor escolhido */
+#feliz:checked      ~ .humor-tela { background: linear-gradient(135deg, #ffb347, #ff6fa8); }
+#calma:checked      ~ .humor-tela { background: linear-gradient(135deg, #8ed1c6, #c18cff); }
+#cansada:checked    ~ .humor-tela { background: linear-gradient(135deg, #a18cd1, #6d1b4a); }
+#apaixonada:checked ~ .humor-tela { background: linear-gradient(135deg, #ff4fa3, #c2185b); }
+
+#feliz:checked      ~ .humor-tela .msg-feliz,
+#calma:checked      ~ .humor-tela .msg-calma,
+#cansada:checked    ~ .humor-tela .msg-cansada,
+#apaixonada:checked ~ .humor-tela .msg-apaixonada { display: block; }
+
+#feliz:checked      ~ .humor-opcoes label[for="feliz"],
+#calma:checked      ~ .humor-opcoes label[for="calma"],
+#cansada:checked    ~ .humor-opcoes label[for="cansada"],
+#apaixonada:checked ~ .humor-opcoes label[for="apaixonada"] {
+  background: var(--rosa);
+  transform: scale(1.12);
+  box-shadow: 0 0 0 4px var(--rosa-claro);
+}
+
 /* Lixeira */
 .vazio { text-align: center; padding: 40px 24px; }
 
