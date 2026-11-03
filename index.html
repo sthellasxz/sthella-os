@@ -109,10 +109,13 @@
         <p class="hero-exp" id="h-exp">É o que sobra depois de pagar todas as contas do mês.</p>
 
         <div class="conta-linha">
-          <div><span id="h-renda-lbl">Renda dos dois</span><b id="h-renda">R$ 0,00</b></div>
-          <div><span id="h-saldo-lbl">+ Já tinha na conta</span><b id="h-saldo">R$ 0,00</b></div>
-          <div id="h-extra-linha" hidden><span id="h-extra-lbl">+ Dinheiro extra (Pix, freela)</span><b id="h-extra">R$ 0,00</b></div>
-          <div><span>− Contas do mês</span><b id="h-contas">R$ 0,00</b></div>
+          <div class="h-banco" hidden><span id="h-banco-a-lbl">Na conta</span><b id="h-banco-a">R$ 0,00</b></div>
+          <div class="h-banco" hidden><span id="h-banco-b-lbl">Na conta</span><b id="h-banco-b">R$ 0,00</b></div>
+          <div class="h-banco" hidden><span>− Contas que ainda faltam pagar</span><b id="h-naopagas">R$ 0,00</b></div>
+          <div class="h-normal"><span id="h-renda-lbl">Renda dos dois</span><b id="h-renda">R$ 0,00</b></div>
+          <div class="h-normal"><span id="h-saldo-lbl">+ Já tinha na conta</span><b id="h-saldo">R$ 0,00</b></div>
+          <div id="h-extra-linha" class="h-normal-x" hidden><span id="h-extra-lbl">+ Dinheiro extra (Pix, freela)</span><b id="h-extra">R$ 0,00</b></div>
+          <div class="h-normal"><span>− Contas do mês</span><b id="h-contas">R$ 0,00</b></div>
           <div class="total"><span>= Sobra</span><b id="h-sobra2">R$ 0,00</b></div>
         </div>
         <p class="hero-pendente" id="h-pendente" hidden></p>
@@ -309,6 +312,29 @@
         </div>
         <p class="muted pequeno">Já deixamos uma categoria sugerida em cada linha. Troque o que estiver errado. Na próxima vez o app lembra da sua escolha para aquele estabelecimento.</p>
         <label class="chk"><input type="checkbox" id="previa-inverter"> É fatura de cartão de crédito (os valores positivos são compras)</label>
+
+        <div class="ext-resumo" id="previa-resumo">
+          <h3>Resumo do extrato</h3>
+          <div class="campo">
+            <span class="label">De quem é esta conta?</span>
+            <div class="seg" role="group" aria-label="Dono da conta" id="previa-dono">
+              <button type="button" data-dono="A" aria-pressed="true">Pessoa 1</button>
+              <button type="button" data-dono="B" aria-pressed="false">Pessoa 2</button>
+            </div>
+          </div>
+          <div class="campo">
+            <label for="previa-inicial">Quanto tinha na conta no começo do extrato</label>
+            <div class="dinheiro"><em>R$</em><input id="previa-inicial" inputmode="decimal" placeholder="0,00"></div>
+            <p class="ajuda" id="previa-inicial-ajuda"></p>
+          </div>
+          <div class="tabela-ext"><table>
+            <thead><tr><th>Mês</th><th>Tinha no começo</th><th>Entrou</th><th>Saiu</th><th>Ficou</th></tr></thead>
+            <tbody id="previa-tabela"></tbody>
+          </table></div>
+          <label class="chk"><input type="checkbox" id="previa-usar-saldo" checked> <span id="previa-usar-saldo-txt">Usar o que ficou no fim de cada mês como "dinheiro que já estava na conta" no mês seguinte</span></label>
+          <label class="chk" id="previa-atual-wrap" hidden><input type="checkbox" id="previa-atual" checked> <span id="previa-atual-txt"></span></label>
+        </div>
+
         <ul class="lanc-lista" id="previa-lista"></ul>
         <div class="folha-acoes">
           <button class="btn" id="previa-cancelar">Cancelar</button>
@@ -317,6 +343,11 @@
       </div>
 
       <!-- análise do mês -->
+      <div class="bloco" id="g-ext-box" hidden>
+        <div class="bloco-cab"><h2>Contas no banco em <span class="mes-txt"></span></h2><span class="muted pequeno">pelo extrato</span></div>
+        <div class="ext-cards" id="g-ext"></div>
+      </div>
+
       <div class="bloco" id="analise">
         <div class="bloco-cab"><h2>Gastos de <span class="mes-txt"></span></h2></div>
         <div class="resumo-contas">
@@ -356,7 +387,7 @@
       <div class="bloco">
         <div class="bloco-cab"><h2>Quanto cada um ganha</h2><span class="muted pequeno">salário líquido por mês</span></div>
         <div class="pessoas-edit">
-          <div class="pessoa-edit A">
+          <div class="pessoa-edit A" data-banco-box="A">
             <button type="button" class="sal-mini" data-recebeu="A" aria-pressed="false"><span class="sal-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="sal-status">Salário: ainda não recebeu</span></button>
             <div class="campo">
               <label for="nome-a">Nome</label>
@@ -366,8 +397,13 @@
               <label for="renda-a">Ganha por mês</label>
               <div class="dinheiro"><em>R$</em><input id="renda-a" inputmode="decimal" placeholder="0,00"></div>
             </div>
+            <div class="campo">
+              <label for="banco-a">Tem na conta agora</label>
+              <div class="dinheiro"><em>R$</em><input id="banco-a" inputmode="decimal" placeholder="não informado"></div>
+              <small class="ajuda" id="banco-a-info"></small>
+            </div>
           </div>
-          <div class="pessoa-edit B">
+          <div class="pessoa-edit B" data-banco-box="B">
             <button type="button" class="sal-mini" data-recebeu="B" aria-pressed="false"><span class="sal-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="sal-status">Salário: ainda não recebeu</span></button>
             <div class="campo">
               <label for="nome-b">Nome</label>
@@ -377,9 +413,15 @@
               <label for="renda-b">Ganha por mês</label>
               <div class="dinheiro"><em>R$</em><input id="renda-b" inputmode="decimal" placeholder="0,00"></div>
             </div>
+            <div class="campo">
+              <label for="banco-b">Tem na conta agora</label>
+              <div class="dinheiro"><em>R$</em><input id="banco-b" inputmode="decimal" placeholder="não informado"></div>
+              <small class="ajuda" id="banco-b-info"></small>
+            </div>
           </div>
         </div>
         <div class="total-renda"><span>Renda total do casal</span><b id="renda-total">R$ 0,00</b></div>
+        <p class="ajuda">"Tem na conta agora" é o saldo que aparece no app do banco hoje. Quando vocês preenchem, a "Sobra de agora" usa esse valor (ele já inclui salário e Pix que caíram) e desconta só as contas que ainda faltam pagar. Deixe vazio para não usar.</p>
       </div>
 
       <div class="bloco">
@@ -449,7 +491,7 @@
         <div class="bloco-cab"><h2>Conta</h2></div>
         <p class="muted pequeno" id="email-logado"></p>
         <button class="btn" id="btn-sair">Sair</button>
-        <p class="pequeno muted">Versão do app: 10 (quanto ainda sobra de cada dinheiro)</p>
+        <p class="pequeno muted">Versão do app: 11 (saldo de cada conta e resumo do extrato)</p>
       </div>
     </section>
   </main>

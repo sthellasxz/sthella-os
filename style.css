@@ -507,3 +507,28 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .resto-item.parte .resto-trilho i { background: var(--c-lazer); }
 .resto-info { display: flex; flex-direction: column; gap: 2px; background: var(--superficie); border: 1px solid var(--linha); border-radius: 12px; padding: 12px; }
 .resto-btn { width: 100%; font-size: .88rem; }
+
+/* ---------- resumo do extrato ---------- */
+.ext-resumo { display: flex; flex-direction: column; gap: 12px; background: var(--afundado); border-radius: 14px; padding: 14px; }
+.ext-resumo h3 { font-size: 1rem; }
+.tabela-ext { overflow-x: auto; background: var(--superficie); border: 1px solid var(--linha); border-radius: 12px; }
+.tabela-ext table { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; }
+.tabela-ext th, .tabela-ext td { padding: 8px 8px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--linha); }
+.tabela-ext th:first-child, .tabela-ext td:first-child { text-align: left; text-transform: capitalize; font-weight: 700; }
+.tabela-ext th { color: var(--suave); font-weight: 600; font-size: .72rem; }
+.tabela-ext tr:last-child td { border-bottom: 0; }
+.tabela-ext .ok { color: var(--ok); } .tabela-ext .alerta { color: var(--alerta); }
+.ext-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ext-card { border: 1px solid var(--linha); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ext-card.A { border-top: 4px solid var(--p-a); } .ext-card.B { border-top: 4px solid var(--p-b); }
+.ext-card dl { margin: 0; display: flex; flex-direction: column; gap: 4px; font-size: .84rem; }
+.ext-card dl div { display: flex; justify-content: space-between; gap: 6px; }
+.ext-card dt { color: var(--suave); } .ext-card dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ext-card .fim { border-top: 1px dashed var(--linha); padding-top: 6px; }
+@media (max-width: 370px) { .ext-cards { grid-template-columns: 1fr; } }
+
+.ext-card h3 { font-size: .95rem; overflow-wrap: anywhere; }
+.ext-card dd.ok { color: var(--ok); } .ext-card dd.alerta { color: var(--alerta); }
+.ext-card dl div { flex-direction: column; gap: 0; }
+.ext-card dt { font-size: .76rem; }
+.ext-card dd { font-size: .98rem; }

@@ -93,7 +93,9 @@
       const desc = [tag("NAME"), tag("MEMO")].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" · ") || "Sem descrição";
       if (data && isFinite(valor)) out.push({ data, descricao: desc, valor });
     }
-    return { itens: out, cartao: /<CREDITCARDMSGSRSV1>/i.test(txt) };
+    const lb = txt.match(/<LEDGERBAL>[\s\S]*?<BALAMT>\s*([-\d.,]+)/i);
+    const saldoFinal = lb ? parseFloat(lb[1].replace(",", ".")) : null;
+    return { itens: out, cartao: /<CREDITCARDMSGSRSV1>/i.test(txt), saldoFinal: isFinite(saldoFinal) ? saldoFinal : null };
   }
 
   function lerCSV(txt) {
@@ -218,9 +220,26 @@
     return itens;
   }
 
+  // procura "saldo inicial/anterior" e "saldo final" no texto do PDF
+  function saldosPDF(linhas) {
+    const val = (l) => {
+      const m = l.match(/([-−–]?)\s?(?:R\$\s*)?([-−–]?)\s?(\d{1,3}(?:\.\d{3})*,\d{2})(\s?[-D])?/i);
+      if (!m) return null;
+      const v = parseFloat(m[3].replace(/\./g, "").replace(",", "."));
+      return (m[1] || m[2] || (m[4] || "").trim()) ? -v : v;
+    };
+    let ini = null, fim = null;
+    for (const l of linhas) {
+      const s = semAcento(l);
+      if (ini == null && /saldo (inicial|anterior)/.test(s)) ini = val(l.slice(s.search(/saldo (inicial|anterior)/)));
+      if (/saldo (final|atual|disponivel|em conta|do dia)/.test(s)) { const v = val(l.slice(s.search(/saldo (final|atual|disponivel|em conta|do dia)/))); if (v != null) fim = v; }
+    }
+    return { saldoInicial: ini, saldoFinal: fim };
+  }
+
   async function lerPDF(buf, senha) {
     const linhas = await textoPDF(buf, senha);
-    return { itens: lerLinhasPDF(linhas), pdf: true, linhas };
+    return { itens: lerLinhasPDF(linhas), pdf: true, linhas, ...saldosPDF(linhas) };
   }
 
   // ---------------- pré-visualização ----------------
@@ -247,11 +266,63 @@
       ? `${previa.length} lançamentos de ${datas[0].split("-").reverse().join("/")} a ${datas[datas.length - 1].split("-").reverse().join("/")}${repetidos ? ` · ${repetidos} já importados` : ""}`
       : "";
     $("previa-lista").innerHTML = previa.map((p, i) => linhaLanc(p, i, true)).join("");
+    resumoPrevia();
     $("previa").hidden = false;
     $("previa").scrollIntoView({ behavior: "smooth", block: "start" });
   }
   let ultimosItens = [];
+  let ultimoSaldo = { inicial: null, final: null }, inicialDigitado = false, dono = "A", resumoMeses = [];
+  const nomesP = () => ({ A: st.config.nome_a || "Pessoa 1", B: st.config.nome_b || "Pessoa 2" });
+
+  // calcula, mês a mês, quanto tinha no começo, quanto entrou, quanto saiu e quanto ficou
+  function resumoPrevia() {
+    const cartao = $("previa-inverter").checked;
+    $("previa-resumo").hidden = cartao || previa.length === 0;
+    if (cartao || !previa.length) { resumoMeses = []; return; }
+    const n = nomesP();
+    $("previa-dono").querySelectorAll("button").forEach((b) => { b.textContent = n[b.dataset.dono]; b.setAttribute("aria-pressed", b.dataset.dono === dono); });
+    // usa todas as linhas do arquivo (também as já importadas) para o saldo bater com o banco
+    const meses = {};
+    for (const p of previa) {
+      const m = p.data.slice(0, 7);
+      meses[m] = meses[m] || { entrou: 0, saiu: 0 };
+      if (p.valor > 0) meses[m].entrou += p.valor; else meses[m].saiu -= p.valor;
+    }
+    const ordem = Object.keys(meses).sort();
+    const totalLiq = ordem.reduce((s, m) => s + meses[m].entrou - meses[m].saiu, 0);
+    let inicial;
+    if (inicialDigitado) inicial = NC.parse($("previa-inicial").value);
+    else if (ultimoSaldo.inicial != null) inicial = ultimoSaldo.inicial;
+    else if (ultimoSaldo.final != null) inicial = ultimoSaldo.final - totalLiq;
+    else {
+      // sem saldo no arquivo: usa o "dinheiro que já estava na conta" do primeiro mês, se houver
+      const ex = (st.ext[ordem[0]] || {})[dono];
+      inicial = ex && ex.inicial != null ? ex.inicial : 0;
+    }
+    inicial = Math.round(inicial * 100) / 100;
+    if (!inicialDigitado) $("previa-inicial").value = NC.paraCampo(Math.abs(inicial)) ? (inicial < 0 ? "-" : "") + NC.paraCampo(Math.abs(inicial)) : "0,00";
+    $("previa-inicial-ajuda").textContent = inicialDigitado ? "Valor digitado por você."
+      : ultimoSaldo.inicial != null ? "Lido do extrato (saldo inicial)."
+      : ultimoSaldo.final != null ? `Calculado pelo saldo final do extrato (${fmt(ultimoSaldo.final)}).`
+      : "O arquivo não traz o saldo. Confira no app do banco e corrija aqui se precisar.";
+    let corrente = inicial;
+    resumoMeses = ordem.map((m) => {
+      const r = { mes: m, inicial: corrente, entrou: Math.round(meses[m].entrou * 100) / 100, saiu: Math.round(meses[m].saiu * 100) / 100 };
+      r.final = Math.round((r.inicial + r.entrou - r.saiu) * 100) / 100;
+      corrente = r.final;
+      return r;
+    });
+    $("previa-tabela").innerHTML = resumoMeses.map((r) => `<tr><td>${nomeMes(r.mes)}</td><td>${fmt(r.inicial)}</td><td class="ok">+ ${fmt(r.entrou)}</td><td class="alerta">− ${fmt(r.saiu)}</td><td><b>${fmt(r.final)}</b></td></tr>`).join("");
+    const ult = resumoMeses[resumoMeses.length - 1];
+    $("previa-usar-saldo-txt").textContent = `Usar o que ficou no fim de cada mês como "dinheiro que já estava na conta" no mês seguinte (ex.: ${fmt(ult.final)} no começo de ${nomeMes(NC.somaMes(ult.mes, 1), true)})`;
+    const hoje = NC.chaveMes(new Date());
+    $("previa-atual-wrap").hidden = ult.mes !== hoje;
+    $("previa-atual-txt").textContent = `Atualizar "tem na conta agora" de ${n[dono]} para ${fmt(ult.final)}`;
+  }
+  $("previa-dono").addEventListener("click", (e) => { const b = e.target.closest("[data-dono]"); if (b) { dono = b.dataset.dono; resumoPrevia(); } });
+  $("previa-inicial").addEventListener("input", () => { inicialDigitado = true; resumoPrevia(); });
   $("previa-inverter").addEventListener("change", () => montarPrevia(ultimosItens));
+  $("previa-lista").addEventListener("change", (e) => { if (e.target.closest("[data-inc]")) resumoPrevia(); });
 
   function linhaLanc(l, i, ehPrevia) {
     const c = CATS[l.categoria] || CATS.outros;
@@ -304,6 +375,36 @@
     // vai para o mês com mais lançamentos importados
     const cont = {}; salvar.forEach((p) => { const m = p.data.slice(0, 7); cont[m] = (cont[m] || 0) + 1; });
     st.mes = Object.entries(cont).sort((a, b) => b[1] - a[1])[0][0];
+    // guarda o resumo do extrato (tinha, entrou, saiu, ficou) de cada mês
+    if (resumoMeses.length) {
+      const campo = dono === "A" ? "ext_a" : "ext_b", outro = dono === "A" ? "B" : "A";
+      const linhasMes = {};
+      for (const r of resumoMeses) {
+        linhasMes[r.mes] = { casal_id: st.casal, mes: r.mes, [campo]: { inicial: r.inicial, entrou: r.entrou, saiu: r.saiu, final: r.final, arquivo: nomeArquivo.slice(0, 80) } };
+        st.ext[r.mes] = { ...(st.ext[r.mes] || {}), [dono]: linhasMes[r.mes][campo] };
+      }
+      if ($("previa-usar-saldo").checked) {
+        for (const r of resumoMeses) {
+          const prox = NC.somaMes(r.mes, 1);
+          const doOutro = (st.ext[r.mes] || {})[outro];
+          const total = Math.max(0, r.final + (doOutro ? doOutro.final : 0));
+          linhasMes[prox] = { ...(linhasMes[prox] || { casal_id: st.casal, mes: prox }), saldo: Math.round(total * 100) / 100 };
+        }
+      }
+      const ult = resumoMeses[resumoMeses.length - 1];
+      if (!$("previa-atual-wrap").hidden && $("previa-atual").checked) {
+        const bk = st.banco[ult.mes] || {};
+        linhasMes[ult.mes] = { ...linhasMes[ult.mes], conta_a: dono === "A" ? ult.final : bk.A ?? null, conta_b: dono === "B" ? ult.final : bk.B ?? null, conta_em: new Date().toISOString() };
+      }
+      // agrupa por conjunto de colunas para o upsert não apagar nada
+      const grupos = {};
+      Object.values(linhasMes).forEach((l) => { const k = Object.keys(l).sort().join(","); (grupos[k] = grupos[k] || []).push(l); });
+      for (const g of Object.values(grupos)) {
+        const { error } = await sb.from("caixa_meses").upsert(g);
+        if (error) { falhou(error); break; }
+      }
+      await NC.recarregar();
+    }
     previa = []; $("previa").hidden = true;
     NC.render();
     toast(`${salvar.length} lançamentos salvos`);
@@ -351,6 +452,8 @@
     }
     $("pdf-senha-box").hidden = true;
     ultimosItens = res.itens;
+    ultimoSaldo = { inicial: res.saldoInicial ?? null, final: res.saldoFinal ?? null };
+    inicialDigitado = false;
     $("previa-inverter").checked = !!res.cartao;
     montarPrevia(res.itens);
   }
@@ -404,6 +507,17 @@
     r = r || NC.calcular();
     const m = st.mes;
     const doMes = st.lancamentos.filter((l) => l.data.slice(0, 7) === m);
+    const exm = st.ext[m] || {}, nn = nomesP();
+    const cards = ["A", "B"].filter((k) => exm[k]).map((k) => {
+      const e = exm[k];
+      return `<div class="ext-card ${k}"><h3>${esc(nn[k])}</h3><dl>
+        <div><dt>Tinha no começo</dt><dd>${fmt(e.inicial)}</dd></div>
+        <div><dt>Entrou</dt><dd class="ok">+ ${fmt(e.entrou)}</dd></div>
+        <div><dt>Saiu</dt><dd class="alerta">− ${fmt(e.saiu)}</dd></div>
+        <div class="fim"><dt>Ficou no fim</dt><dd>${fmt(e.final)}</dd></div></dl></div>`;
+    });
+    $("g-ext-box").hidden = cards.length === 0;
+    $("g-ext").innerHTML = cards.join("");
     const saidas = doMes.filter((l) => l.valor < 0), entradas = doMes.filter((l) => l.valor > 0);
     const saiu = -saidas.reduce((s, l) => s + l.valor, 0), entrou = entradas.reduce((s, l) => s + l.valor, 0);
     $("g-saiu").textContent = fmt(saiu);

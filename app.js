@@ -39,7 +39,7 @@
     user: null, casal: null, codigo: "", membros: 0,
     mes: HOJE, aba: "inicio", visao: (() => { try { return localStorage.getItem("nc-visao") || "agora"; } catch { return "agora"; } })(), filtro: "todas",
     config: { nome_a: "Eu", nome_b: "João", renda_a: 0, renda_b: 0, pct_guardar: 40, pct_lazer: 30 },
-    meses: {}, recebido: {}, saldoInfo: {}, contas: [], lancamentos: [], regras: {},
+    meses: {}, recebido: {}, saldoInfo: {}, banco: {}, ext: {}, contas: [], lancamentos: [], regras: {},
   };
 
   // ---------------- telas ----------------
@@ -143,6 +143,9 @@
     if (erro) { sinc("Sem conexão — mostrando o que já tinha", "erro"); return; }
     if (cfg.data) st.config = cfg.data;
     st.meses = Object.fromEntries((meses.data || []).map((m) => [m.mes, Number(m.saldo)]));
+    const num = (v) => (v == null ? null : Number(v));
+    st.banco = Object.fromEntries((meses.data || []).map((m) => [m.mes, { A: num(m.conta_a), B: num(m.conta_b), em: m.conta_em }]));
+    st.ext = Object.fromEntries((meses.data || []).map((m) => [m.mes, { A: m.ext_a || null, B: m.ext_b || null }]));
     st.saldoInfo = Object.fromEntries((meses.data || []).map((m) => [m.mes, { restante: m.saldo_restante == null ? null : Number(m.saldo_restante), data: m.saldo_data || "" }]));
     st.recebido = Object.fromEntries((meses.data || []).map((m) => [m.mes, { A: !!m.recebeu_a, B: !!m.recebeu_b }]));
     st.contas = (contas.data || []).map(normConta);
@@ -253,13 +256,21 @@
     // dinheiro que já acabou não volta: vale para as duas visões
     const saldoUsado = saldoAgora;
     const extraUsado = extraAgora;
-    const disponivel = rendaUsada + saldoUsado + extraUsado;
-    const sobra = disponivel - contas;
+    let disponivel = rendaUsada + saldoUsado + extraUsado;
+    let sobra = disponivel - contas;
+    // saldo informado de cada conta: na visão "agora" usa o saldo real e desconta só o que falta pagar
+    const bk = st.banco[m] || {};
+    const bancoA = bk.A == null ? null : Number(bk.A), bancoB = bk.B == null ? null : Number(bk.B);
+    const naoPagas = contas - pago;
+    const modoBanco = st.visao !== "previsto" && (bancoA != null || bancoB != null);
+    const agoraA = bancoA != null ? bancoA : rec.A ? rA : 0, agoraB = bancoB != null ? bancoB : rec.B ? rB : 0;
+    if (modoBanco) { disponivel = agoraA + agoraB; sobra = disponivel - naoPagas; }
     const base = Math.max(0, sobra);
+    const contasBarra = modoBanco ? naoPagas : contas;
     const guardar = base * cfg.pct_guardar / 100;
     const lazer = base * cfg.pct_lazer / 100;
     const folga = Math.max(0, base - guardar - lazer);
-    return { extras, saldoAgora, extraAgora, saldoUsado, extraUsado, rA, rB, renda, rendaRecebida, rendaUsada, pendente, propA, saldo, extra, ativas, contas, pago, contaA, contaB, disponivel, sobra, guardar, lazer, folga };
+    return { modoBanco, bancoA, bancoB, agoraA, agoraB, naoPagas, contasBarra, extras, saldoAgora, extraAgora, saldoUsado, extraUsado, rA, rB, renda, rendaRecebida, rendaUsada, pendente, propA, saldo, extra, ativas, contas, pago, contaA, contaB, disponivel, sobra, guardar, lazer, folga };
   }
 
   // ---------------- render ----------------
@@ -279,7 +290,7 @@
     $("h-renda").textContent = fmt(r.rendaUsada);
     $("h-renda-lbl").textContent = agora ? "Salários já recebidos" : "Salários do mês (previsto)";
     $("h-eyebrow").firstChild.textContent = agora ? "Sobra de agora · " : "Sobra prevista de ";
-    $("h-pendente").hidden = !(r.pendente > 0);
+    $("h-pendente").hidden = !(r.pendente > 0) || r.modoBanco;
     if (r.pendente > 0) {
       const faltam = ["A", "B"].filter((k) => !(st.recebido[m] || {})[k] && (k === "A" ? r.rA : r.rB) > 0).map((k) => n[k]).join(" e ");
       $("h-pendente").textContent = agora
@@ -313,17 +324,26 @@
     $("saldo-resto-btn").textContent = r.saldo <= 0 ? "—" : temS <= 0 ? "Já acabou" : temS >= r.saldo ? "Ainda tem tudo" : `Ainda tem ${fmt(temS)}`;
     $("saldo-resto-btn").disabled = r.saldo <= 0;
     $("h-contas").textContent = fmt(r.contas);
+    document.querySelectorAll(".h-banco").forEach((el) => (el.hidden = !r.modoBanco));
+    document.querySelectorAll(".h-normal").forEach((el) => (el.hidden = r.modoBanco));
+    if (r.modoBanco) {
+      $("h-extra-linha").hidden = true;
+      $("h-banco-a-lbl").textContent = r.bancoA != null ? `Na conta de ${n.A} agora` : `${n.A}: salário recebido (sem saldo informado)`;
+      $("h-banco-b-lbl").textContent = r.bancoB != null ? `Na conta de ${n.B} agora` : `${n.B}: salário recebido (sem saldo informado)`;
+      $("h-banco-a").textContent = fmt(r.agoraA); $("h-banco-b").textContent = fmt(r.agoraB);
+      $("h-naopagas").textContent = fmt(r.naoPagas);
+    }
     $("h-exp").textContent = r.renda === 0
       ? "Comece pela aba Renda: coloque quanto cada um ganha por mês."
-      : agora ? "Só conta o salário que já caiu, menos todas as contas do mês." : "Quanto vai sobrar no mês quando todos os salários caírem.";
+      : r.modoBanco ? "Saldo que vocês informaram nas contas, menos as contas do mês que ainda faltam pagar." : agora ? "Só conta o salário que já caiu, menos todas as contas do mês." : "Quanto vai sobrar no mês quando todos os salários caírem.";
 
-    const tot = Math.max(r.disponivel, r.contas) || 1;
+    const tot = Math.max(r.disponivel, r.contasBarra) || 1;
     const partes = [
-      ["Contas", r.contas, "--c-contas"], ["Guardar", r.guardar, "--c-guardar"],
+      [r.modoBanco ? "Contas a pagar" : "Contas", r.contasBarra, "--c-contas"], ["Guardar", r.guardar, "--c-guardar"],
       ["Lazer", r.lazer, "--c-lazer"], ["Folga", r.folga, "--c-folga"],
     ];
     $("barra").innerHTML = partes.filter((p) => p[1] > 0).map((p) => `<i style="width:${(p[1] / tot * 100).toFixed(2)}%;background:var(${p[2]})" title="${p[0]}"></i>`).join("");
-    $("legenda").innerHTML = partes.map((p) => `<li style="--c:var(${p[2]})"><span>${p[0]}${r.disponivel > 0 && r.disponivel >= r.contas ? " · " + Math.round(p[1] / r.disponivel * 100) + "%" : ""}</span><b>${fmt(p[1])}</b></li>`).join("");
+    $("legenda").innerHTML = partes.map((p) => `<li style="--c:var(${p[2]})"><span>${p[0]}${r.disponivel > 0 && r.disponivel >= r.contasBarra ? " · " + Math.round(p[1] / r.disponivel * 100) + "%" : ""}</span><b>${fmt(p[1])}</b></li>`).join("");
 
     $("p-guardar").textContent = fmt(r.guardar);
     $("p-lazer").textContent = fmt(r.lazer);
@@ -378,6 +398,11 @@
     setVal("nome-a", cfg.nome_a); setVal("nome-b", cfg.nome_b);
     setVal("renda-a", paraCampo(Number(cfg.renda_a))); setVal("renda-b", paraCampo(Number(cfg.renda_b)));
     setVal("saldo", paraCampo(r.saldo));
+    const bkm = st.banco[m] || {};
+    for (const [k, low] of [["A", "a"], ["B", "b"]]) {
+      setVal("banco-" + low, bkm[k] == null ? "" : paraCampo(bkm[k]) || "0,00");
+      $("banco-" + low + "-info").textContent = bkm[k] == null ? `Saldo de ${nomeMes(m)} não informado` : bkm.em ? `Atualizado em ${new Date(bkm.em).toLocaleDateString("pt-BR")}` : "";
+    }
     $("renda-total").textContent = fmt(r.renda);
     $("pct-guardar").value = cfg.pct_guardar; $("pct-lazer").value = cfg.pct_lazer;
     $("pct-guardar-txt").textContent = cfg.pct_guardar + "%";
@@ -488,6 +513,22 @@
   ligarCfg("renda-a", "renda_a", parse);
   ligarCfg("renda-b", "renda_b", parse);
   ["renda-a", "renda-b", "saldo"].forEach((id) => $(id).addEventListener("blur", () => { $(id).value = ""; render(); }));
+  let tBanco;
+  for (const [k, low] of [["A", "a"], ["B", "b"]]) {
+    $("banco-" + low).addEventListener("input", (e) => {
+      const m = st.mes, txt = e.target.value.trim();
+      st.banco[m] = { ...(st.banco[m] || {}), [k]: txt === "" ? null : parse(txt), em: new Date().toISOString() };
+      render();
+      clearTimeout(tBanco);
+      tBanco = setTimeout(async () => {
+        const b = st.banco[m]; sinc("Salvando…");
+        const { error } = await sb.from("caixa_meses").upsert({ casal_id: st.casal, mes: m, conta_a: b.A ?? null, conta_b: b.B ?? null, conta_em: b.em });
+        error ? falhou(error) : sinc("Salvo", "ok");
+      }, 700);
+    });
+    $("banco-" + low).addEventListener("blur", () => { $("banco-" + low).value = ""; render(); });
+  }
+
   $("saldo-data").addEventListener("change", async (e) => {
     const m = st.mes; st.saldoInfo[m] = { ...(st.saldoInfo[m] || { restante: null }), data: e.target.value };
     sinc("Salvando…");
@@ -552,7 +593,7 @@
     catch { const r = document.createRange(); r.selectNodeContents($("codigo-casal")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Selecione e copie o código"); }
   };
 
-  window.NC = { sb, st, fmt, parse, nomeMes, chaveMes, esc, toast, sinc, falhou, render: () => render(), calcular };
+  window.NC = { recarregar: () => buscarTudo(), paraCampo, somaMes, sb, st, fmt, parse, nomeMes, chaveMes, esc, toast, sinc, falhou, render: () => render(), calcular };
 
   // ---------------- folha de conta ----------------
   let editando = null, tipo = "parcelada", ultimo = "total", pagosForm = {};
