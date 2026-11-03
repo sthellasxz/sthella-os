@@ -121,6 +121,23 @@
         <ul class="legenda" id="legenda"></ul>
       </div>
 
+      <div class="bloco salarios">
+        <div class="bloco-cab"><h2>Salário de <span class="mes-txt"></span></h2><span class="muted pequeno">toque para marcar</span></div>
+        <div class="sal-lista">
+          <button type="button" class="sal-item A" data-recebeu="A" aria-pressed="false">
+            <span class="sal-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+            <span class="sal-txt"><b class="sal-nome">Pessoa 1</b><small class="sal-status">Ainda não recebeu</small></span>
+            <b class="sal-valor">R$ 0,00</b>
+          </button>
+          <button type="button" class="sal-item B" data-recebeu="B" aria-pressed="false">
+            <span class="sal-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+            <span class="sal-txt"><b class="sal-nome">Pessoa 2</b><small class="sal-status">Ainda não recebeu</small></span>
+            <b class="sal-valor">R$ 0,00</b>
+          </button>
+        </div>
+        <div class="sal-resumo"><span>Já entrou <b id="sal-entrou" class="ok">R$ 0,00</b></span><span>Falta entrar <b id="sal-falta" class="alerta">R$ 0,00</b></span></div>
+      </div>
+
       <div class="atalhos">
         <button class="btn primario atalho-gasto" data-ir="gastos" data-foco="gm-valor" data-tipo="saida"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>Lançar gasto</button>
         <button class="btn atalho-entrada" data-ir="gastos" data-foco="gm-valor" data-tipo="entrada"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Entrou dinheiro</button>
@@ -329,6 +346,7 @@
         <div class="bloco-cab"><h2>Quanto cada um ganha</h2><span class="muted pequeno">salário líquido por mês</span></div>
         <div class="pessoas-edit">
           <div class="pessoa-edit A">
+            <button type="button" class="sal-mini" data-recebeu="A" aria-pressed="false"><span class="sal-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="sal-status">Salário: ainda não recebeu</span></button>
             <div class="campo">
               <label for="nome-a">Nome</label>
               <input id="nome-a" maxlength="20" placeholder="Seu nome">
@@ -339,6 +357,7 @@
             </div>
           </div>
           <div class="pessoa-edit B">
+            <button type="button" class="sal-mini" data-recebeu="B" aria-pressed="false"><span class="sal-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="sal-status">Salário: ainda não recebeu</span></button>
             <div class="campo">
               <label for="nome-b">Nome</label>
               <input id="nome-b" maxlength="20" placeholder="João">
@@ -409,7 +428,7 @@
         <div class="bloco-cab"><h2>Conta</h2></div>
         <p class="muted pequeno" id="email-logado"></p>
         <button class="btn" id="btn-sair">Sair</button>
-        <p class="pequeno muted">Versão do app: 7 (leitura de PDF melhorada)</p>
+        <p class="pequeno muted">Versão do app: 8 (salário recebido)</p>
       </div>
     </section>
   </main>

@@ -39,7 +39,7 @@
     user: null, casal: null, codigo: "", membros: 0,
     mes: HOJE, aba: "inicio", filtro: "todas",
     config: { nome_a: "Eu", nome_b: "João", renda_a: 0, renda_b: 0, pct_guardar: 40, pct_lazer: 30 },
-    meses: {}, contas: [], lancamentos: [], regras: {},
+    meses: {}, recebido: {}, contas: [], lancamentos: [], regras: {},
   };
 
   // ---------------- telas ----------------
@@ -143,6 +143,7 @@
     if (erro) { sinc("Sem conexão — mostrando o que já tinha", "erro"); return; }
     if (cfg.data) st.config = cfg.data;
     st.meses = Object.fromEntries((meses.data || []).map((m) => [m.mes, Number(m.saldo)]));
+    st.recebido = Object.fromEntries((meses.data || []).map((m) => [m.mes, { A: !!m.recebeu_a, B: !!m.recebeu_b }]));
     st.contas = (contas.data || []).map(normConta);
     st.codigo = casal.data ? casal.data.codigo : "";
     st.membros = (membros.data || []).length;
@@ -191,6 +192,12 @@
       const { error } = await sb.from("caixa_meses").upsert({ casal_id: st.casal, mes, saldo: st.meses[mes] || 0 });
       error ? falhou(error) : sinc("Salvo", "ok");
     }, 600);
+  }
+  async function salvarRecebido(mes) {
+    const r = st.recebido[mes] || {};
+    sinc("Salvando…");
+    const { error } = await sb.from("caixa_meses").upsert({ casal_id: st.casal, mes, recebeu_a: !!r.A, recebeu_b: !!r.B });
+    error ? falhou(error) : sinc("Salvo", "ok");
   }
   async function salvarPagos(conta) {
     sinc("Salvando…");
@@ -329,6 +336,21 @@
     // casal
     $("codigo-casal").textContent = st.codigo || "——————";
     $("membros-txt").textContent = st.membros >= 2 ? "Vocês dois já estão neste caixa." : "Por enquanto só você está neste caixa.";
+    // salário recebido no mês
+    const rec = st.recebido[m] || {};
+    document.querySelectorAll("[data-recebeu]").forEach((b) => {
+      const k = b.dataset.recebeu, ok = !!rec[k], mini = b.classList.contains("sal-mini");
+      b.setAttribute("aria-pressed", ok);
+      const stt = b.querySelector(".sal-status");
+      stt.textContent = mini ? (ok ? `Salário de ${nomeMes(m)}: recebido` : `Salário de ${nomeMes(m)}: ainda não recebeu`) : (ok ? "Recebido" : "Ainda não recebeu");
+      const nm = b.querySelector(".sal-nome"); if (nm) nm.textContent = n[k];
+      const vl = b.querySelector(".sal-valor"); if (vl) vl.textContent = fmt(k === "A" ? r.rA : r.rB);
+    });
+    const entrou = (rec.A ? r.rA : 0) + (rec.B ? r.rB : 0);
+    $("sal-entrou").textContent = fmt(entrou);
+    $("sal-falta").textContent = fmt(r.renda - entrou);
+    $("sal-falta").classList.toggle("alerta", r.renda - entrou > 0);
+
     $("email-logado").textContent = st.user ? "Conectado como " + st.user.email : "";
     if (window.NC_gastos) window.NC_gastos.render(r);
   }
@@ -385,6 +407,14 @@
       c.pagos = { ...c.pagos }; if (novo) c.pagos[st.mes] = true; else delete c.pagos[st.mes];
       render(); salvarPagos(c);
       toast(novo ? `${c.nome}: ${nomeMes(st.mes, true)} marcado como pago` : `${c.nome}: pagamento desmarcado`);
+      return;
+    }
+    const rcb = e.target.closest("[data-recebeu]");
+    if (rcb) {
+      const k = rcb.dataset.recebeu, m = st.mes;
+      st.recebido[m] = { ...(st.recebido[m] || {}), [k]: !(st.recebido[m] || {})[k] };
+      render(); salvarRecebido(m);
+      toast(st.recebido[m][k] ? `Salário de ${nomes()[k]} marcado como recebido` : `Salário de ${nomes()[k]}: ainda não recebeu`);
       return;
     }
     const ed = e.target.closest("[data-editar]");

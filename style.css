@@ -457,3 +457,28 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 
 .diag { display: flex; flex-direction: column; gap: 10px; background: var(--afundado); border-radius: 14px; padding: 14px; font-size: .88rem; }
 .diag pre { margin: 0; max-height: 50vh; overflow: auto; background: var(--superficie); border: 1px solid var(--linha); border-radius: 10px; padding: 10px; font-size: .72rem; line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
+
+/* ---------- salário recebido ---------- */
+.sal-lista { display: flex; flex-direction: column; gap: 8px; }
+.sal-item {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; text-align: left;
+  border: 1.5px solid var(--linha); background: var(--superficie); border-radius: 14px; padding: 12px; cursor: pointer; min-height: 56px;
+}
+.sal-item.A { border-left: 5px solid var(--p-a); }
+.sal-item.B { border-left: 5px solid var(--p-b); }
+.sal-txt { display: flex; flex-direction: column; min-width: 0; }
+.sal-txt b { overflow-wrap: anywhere; }
+.sal-status { font-size: .8rem; color: var(--alerta); font-weight: 600; }
+.sal-valor { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sal-check { width: 28px; height: 28px; border-radius: 8px; border: 2px solid var(--linha); display: grid; place-items: center; color: transparent; flex: none; background: var(--superficie); }
+.sal-check svg { width: 16px; height: 16px; stroke-width: 3; }
+[data-recebeu][aria-pressed="true"] .sal-check { background: var(--ok); border-color: var(--ok); color: #fff; }
+[data-recebeu][aria-pressed="true"] .sal-status { color: var(--ok); }
+.sal-item[aria-pressed="true"] { background: var(--guardar-suave); }
+.sal-resumo { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: .9rem; color: var(--suave); }
+.sal-resumo b { color: var(--tinta); }
+.sal-resumo b.ok { color: var(--ok); }
+.sal-resumo b.alerta { color: var(--alerta); }
+.sal-mini { display: flex; align-items: center; gap: 8px; border: 0; background: var(--superficie); border-radius: 10px; padding: 8px 10px; cursor: pointer; text-align: left; }
+.sal-mini .sal-check { width: 22px; height: 22px; border-radius: 6px; }
+.sal-mini .sal-status { font-size: .76rem; }
