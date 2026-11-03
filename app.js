@@ -265,7 +265,9 @@
     const saldoUsado = saldoAgora;
     const extraUsado = extraAgora;
     let disponivel = rendaUsada + saldoUsado + extraUsado;
-    let sobra = disponivel - contas;
+    // gastos lançados à mão no mês também saem da sobra
+    const gastosManuais = (st.lancamentos || []).filter((l) => l.origem === "manual" && l.valor < 0 && l.data.slice(0, 7) === m).reduce((s, l) => s - l.valor, 0);
+    let sobra = disponivel - contas - gastosManuais;
     // saldo informado de cada conta: na visão "agora" usa o saldo real e desconta só o que falta pagar
     const bk = st.banco[m] || {};
     const bancoA = bk.A == null ? null : Number(bk.A), bancoB = bk.B == null ? null : Number(bk.B);
@@ -279,7 +281,7 @@
     const guardar = base * cfg.pct_guardar / 100;
     const lazer = base * cfg.pct_lazer / 100;
     const folga = Math.max(0, base - guardar - lazer);
-    return { naoPagasA, naoPagasB, modoBanco, bancoA, bancoB, agoraA, agoraB, naoPagas, contasBarra, extras, saldoAgora, extraAgora, saldoUsado, extraUsado, rA, rB, renda, rendaRecebida, rendaUsada, pendente, propA, saldo, extra, ativas, contas, pago, contaA, contaB, disponivel, sobra, guardar, lazer, folga };
+    return { gastosManuais, naoPagasA, naoPagasB, modoBanco, bancoA, bancoB, agoraA, agoraB, naoPagas, contasBarra, extras, saldoAgora, extraAgora, saldoUsado, extraUsado, rA, rB, renda, rendaRecebida, rendaUsada, pendente, propA, saldo, extra, ativas, contas, pago, contaA, contaB, disponivel, sobra, guardar, lazer, folga };
   }
 
   // ---------------- render ----------------
@@ -333,6 +335,8 @@
     $("saldo-resto-btn").textContent = r.saldo <= 0 ? "—" : temS <= 0 ? "Já acabou" : temS >= r.saldo ? "Ainda tem tudo" : `Ainda tem ${fmt(temS)}`;
     $("saldo-resto-btn").disabled = r.saldo <= 0;
     $("h-contas").textContent = fmt(r.contas);
+    $("h-gastos").textContent = fmt(r.gastosManuais);
+    $("h-gastos-linha").hidden = !r.gastosManuais || r.modoBanco;
     // com saldo informado: cada um separado, sem somar as duas contas
     const separado = r.modoBanco;
     $("h-pessoas").hidden = !separado;
@@ -640,7 +644,7 @@
     catch { const r = document.createRange(); r.selectNodeContents($("codigo-casal")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Selecione e copie o código"); }
   };
 
-  window.NC = { recarregar: () => buscarTudo(), paraCampo, somaMes, sb, st, fmt, parse, nomeMes, chaveMes, esc, toast, sinc, falhou, render: () => render(), calcular };
+  window.NC = { salvarBanco, recarregar: () => buscarTudo(), paraCampo, somaMes, sb, st, fmt, parse, nomeMes, chaveMes, esc, toast, sinc, falhou, render: () => render(), calcular };
 
   // ---------------- folha de conta ----------------
   let editando = null, tipo = "parcelada", ultimo = "total", pagosForm = {};

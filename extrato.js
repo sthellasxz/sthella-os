@@ -617,25 +617,43 @@
     const descricao = $("gm-desc").value.trim() || CATS[gmCat].nome;
     const id = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + Math.random();
     const linha = { casal_id: st.casal, data, descricao: descricao.slice(0, 200), valor: (ent ? 1 : -1) * Math.round(valor * 100) / 100, categoria: gmCat, chave: chaveDe(descricao), origem: "manual", quem: gmQuem, hash: "manual|" + id };
+    // tira o gasto (ou soma a entrada) do saldo de quem gastou, se o saldo do mês foi informado
+    const mesL = data.slice(0, 7), bk = { ...(st.banco[mesL] || {}) };
+    const propA = NC.calcular().propA, v = Math.abs(linha.valor);
+    const parte = gmQuem === "A" ? { A: v, B: 0 } : gmQuem === "B" ? { A: 0, B: v } : { A: v * propA, B: v * (1 - propA) };
+    const desc = {}; let mexeu = false;
+    for (const k of ["A", "B"]) if (bk[k] != null && parte[k]) { desc[k] = Math.round(parte[k] * (ent ? 1 : -1) * 100) / 100; bk[k] = Math.round((bk[k] + desc[k]) * 100) / 100; mexeu = true; }
+    if (mexeu) linha.descontado = { mes: mesL, ...desc };
     $("gm-salvar").disabled = true; sinc("Salvando…");
     const { data: salvo, error } = await sb.from("caixa_lancamentos").insert(linha).select().single();
     $("gm-salvar").disabled = false;
     if (error) return falhou(error);
+    if (mexeu) { bk.em = new Date().toISOString(); st.banco[mesL] = bk; NC.salvarBanco(mesL); }
     st.lancamentos.unshift({ ...salvo, valor: Number(salvo.valor) });
     sinc("Salvo", "ok");
     st.mes = data.slice(0, 7);
     $("gm-valor").value = ""; $("gm-desc").value = "";
     NC.render();
-    toast(ent ? `Entrada de ${fmt(valor)} (${CATS[gmCat].nome}) salva` : `${fmt(valor)} em ${CATS[gmCat].nome} salvo`);
+    const nm = nomes();
+    const deQuem = gmQuem === "ambos" ? "dos dois" : "de " + nm[gmQuem];
+    toast(ent ? `Entrada de ${fmt(valor)} salva${mexeu ? `, somada ao saldo ${deQuem}` : ""}` : `${fmt(valor)} em ${CATS[gmCat].nome} salvo${mexeu ? `, descontado do saldo ${deQuem}` : ""}`);
   });
   $("g-lista").addEventListener("click", async (e) => {
     const b = e.target.closest("[data-del]"); if (!b) return;
     if (!b.dataset.confirmar) { b.dataset.confirmar = "1"; b.textContent = "confirmar exclusão"; b.classList.add("confirmar"); setTimeout(() => { if (b.isConnected) { b.dataset.confirmar = ""; b.textContent = "excluir"; b.classList.remove("confirmar"); } }, 4000); return; }
     const id = b.dataset.del;
+    const l = st.lancamentos.find((x) => x.id === id);
     const { error } = await sb.from("caixa_lancamentos").delete().eq("id", id);
     if (error) return falhou(error);
     st.lancamentos = st.lancamentos.filter((x) => x.id !== id);
-    NC.render(); toast("Lançamento excluído");
+    // devolve ao saldo o que tinha sido descontado
+    let voltou = false;
+    if (l && l.descontado && l.descontado.mes) {
+      const mesL = l.descontado.mes, bk = { ...(st.banco[mesL] || {}) };
+      for (const k of ["A", "B"]) if (bk[k] != null && l.descontado[k]) { bk[k] = Math.round((bk[k] - l.descontado[k]) * 100) / 100; voltou = true; }
+      if (voltou) { bk.em = new Date().toISOString(); st.banco[mesL] = bk; NC.salvarBanco(mesL); }
+    }
+    NC.render(); toast(voltou ? "Lançamento excluído e saldo corrigido" : "Lançamento excluído");
   });
 
   const renderOriginal = render;
