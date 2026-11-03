@@ -229,13 +229,16 @@
       else if (c.quem === "B") contaB += v;
       else { contaA += v * propA; contaB += v * (1 - propA); }
     }
-    const disponivel = renda + saldo;
+    // dinheiro extra do mês (trabalho extra, reembolso, presente); salário não entra porque já está na renda
+    const EXTRA = ["extra", "reembolso", "presente"];
+    const extra = (st.lancamentos || []).filter((l) => l.valor > 0 && l.data.slice(0, 7) === m && EXTRA.includes(l.categoria)).reduce((s, l) => s + l.valor, 0);
+    const disponivel = renda + saldo + extra;
     const sobra = disponivel - contas;
     const base = Math.max(0, sobra);
     const guardar = base * cfg.pct_guardar / 100;
     const lazer = base * cfg.pct_lazer / 100;
     const folga = Math.max(0, base - guardar - lazer);
-    return { rA, rB, renda, propA, saldo, ativas, contas, pago, contaA, contaB, disponivel, sobra, guardar, lazer, folga };
+    return { rA, rB, renda, propA, saldo, extra, ativas, contas, pago, contaA, contaB, disponivel, sobra, guardar, lazer, folga };
   }
 
   // ---------------- render ----------------
@@ -252,6 +255,8 @@
     $("h-sobra2").textContent = fmt(r.sobra);
     $("h-renda").textContent = fmt(r.renda);
     $("h-saldo").textContent = fmt(r.saldo);
+    $("h-extra").textContent = fmt(r.extra);
+    $("h-extra-linha").hidden = !r.extra;
     $("h-contas").textContent = fmt(r.contas);
     $("h-exp").textContent = r.renda === 0
       ? "Comece pela aba Renda: coloque quanto cada um ganha por mês."

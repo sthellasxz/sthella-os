@@ -21,7 +21,11 @@
     cartao:       { nome: "Fatura do cartão", cor: "#475569" },
     transferencia:{ nome: "Pix e transferências", cor: "#94A3B8" },
     outros:       { nome: "Outros",           cor: "#A8A29E" },
-    entrada:      { nome: "Entrada (salário, Pix recebido)", cor: "#0F8A65" },
+    extra:        { nome: "Trabalho extra / freela", cor: "#12A37A" },
+    salario:      { nome: "Salário", cor: "#0F7A5C" },
+    reembolso:    { nome: "Reembolso", cor: "#3BA7A0" },
+    presente:     { nome: "Presente / Pix da família", cor: "#7FB069" },
+    entrada:      { nome: "Outras entradas", cor: "#0F8A65" },
   };
   // palavras-chave → categoria (testadas na descrição sem acento, em minúsculas)
   const PALAVRAS = [
@@ -51,7 +55,7 @@
   function categorizar(desc, valor) {
     const ch = chaveDe(desc);
     if (st.regras[ch]) return st.regras[ch];
-    if (valor > 0) return "entrada";
+    if (valor > 0) return /salario|folha de pag|proventos|vencimentos/.test(semAcento(desc)) ? "salario" : /estorno|reembolso|devolucao/.test(semAcento(desc)) ? "reembolso" : "entrada";
     const d = " " + semAcento(desc) + " ";
     for (const [cat, re] of PALAVRAS) if (re.test(d)) return cat;
     return "outros";
@@ -347,6 +351,17 @@
       </li>`;
     }).join("");
 
+    const porEnt = {};
+    entradas.forEach((l) => { porEnt[l.categoria] = (porEnt[l.categoria] || 0) + l.valor; });
+    const ents = Object.entries(porEnt).sort((a, b) => b[1] - a[1]);
+    $("g-entradas-box").hidden = ents.length === 0;
+    $("g-entradas").innerHTML = ents.map(([k, v]) => {
+      const c = CATS[k] || CATS.entrada;
+      return `<li style="--cat:${c.cor}"><div class="cat-l1"><span class="cat-nome"><i></i>${c.nome}</span><b class="ok">+ ${fmt(v)}</b></div>
+        <div class="cat-barra"><i style="width:${(v / ents[0][1] * 100).toFixed(1)}%"></i></div>
+        <span class="muted pequeno">${["extra", "reembolso", "presente"].includes(k) ? "Soma na sobra do mês" : k === "salario" ? "Já contado na aba Renda" : "Não soma na sobra (pode ser transferência entre vocês)"}</span></li>`;
+    }).join("");
+
     // compara com o planejado
     const lazerGasto = porCat.lazer || 0;
     const comp = [];
@@ -371,15 +386,33 @@
 
   // ---------------- lançar gasto à mão ----------------
   const RAPIDAS = ["comida", "lazer", "transporte", "faculdade", "contas", "compras", "saude", "moradia", "assinaturas", "outros"];
-  let gmCat = "comida", gmQuem = "ambos";
+  const RAPIDAS_ENTRADA = ["extra", "presente", "reembolso", "salario", "entrada"];
+  let gmCat = "comida", gmQuem = "ambos", gmTipo = "saida";
+  function setTipoGasto(t) {
+    gmTipo = t;
+    const ent = t === "entrada";
+    $("gm-tipo").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.gtipo === t));
+    gmCat = ent ? "extra" : "comida";
+    $("gm-titulo").textContent = ent ? "Entrou dinheiro" : "Lançar um gasto";
+    $("gm-ex").textContent = ent ? "ex.: Pix de R$ 150 de um trabalho extra" : "ex.: R$ 20 no almoço";
+    $("gm-cat-lbl").textContent = ent ? "De onde veio?" : "Com o quê?";
+    $("gm-quem-lbl").textContent = ent ? "Quem recebeu" : "Quem gastou";
+    $("gm-desc").placeholder = ent ? "Ex.: freela de design, bico no fim de semana" : "Ex.: almoço, Uber, xerox";
+    $("gm-salvar").textContent = ent ? "Salvar entrada" : "Salvar gasto";
+    $("gm-ajuda").hidden = !ent;
+    $("form-gasto").classList.toggle("modo-entrada", ent);
+    desenharChips();
+  }
   const nomes = () => ({ A: st.config.nome_a || "Pessoa 1", B: st.config.nome_b || "Pessoa 2", ambos: "Os dois" });
   function quemNome(q) { return nomes()[q] || "Os dois"; }
   const hojeISO = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   function desenharChips() {
-    $("gm-cats").innerHTML = RAPIDAS.map((k) => `<button type="button" role="radio" aria-checked="${k === gmCat}" data-gcat="${k}" style="--cat:${CATS[k].cor}"><i></i>${CATS[k].nome}</button>`).join("");
+    $("gm-cats").innerHTML = (gmTipo === "entrada" ? RAPIDAS_ENTRADA : RAPIDAS).map((k) => `<button type="button" role="radio" aria-checked="${k === gmCat}" data-gcat="${k}" style="--cat:${CATS[k].cor}"><i></i>${CATS[k].nome}</button>`).join("");
   }
   desenharChips();
   $("gm-data").value = hojeISO();
+  $("gm-tipo").addEventListener("click", (e) => { const b = e.target.closest("[data-gtipo]"); if (b) setTipoGasto(b.dataset.gtipo); });
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-tipo]"); if (b) setTipoGasto(b.dataset.tipo); });
   $("gm-cats").addEventListener("click", (e) => { const b = e.target.closest("[data-gcat]"); if (!b) return; gmCat = b.dataset.gcat; desenharChips(); });
   $("gm-quem").addEventListener("click", (e) => {
     const b = e.target.closest("[data-quem]"); if (!b) return; gmQuem = b.dataset.quem;
@@ -389,11 +422,12 @@
     e.preventDefault();
     const valor = NC.parse($("gm-valor").value);
     const data = $("gm-data").value || hojeISO();
-    if (!(valor > 0)) return (($("gm-msg").textContent = "Digite quanto foi gasto, por exemplo 20,00."), ($("gm-msg").hidden = false));
+    const ent = gmTipo === "entrada";
+    if (!(valor > 0)) return (($("gm-msg").textContent = ent ? "Digite quanto entrou, por exemplo 150,00." : "Digite quanto foi gasto, por exemplo 20,00."), ($("gm-msg").hidden = false));
     $("gm-msg").hidden = true;
     const descricao = $("gm-desc").value.trim() || CATS[gmCat].nome;
     const id = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + Math.random();
-    const linha = { casal_id: st.casal, data, descricao: descricao.slice(0, 200), valor: -Math.round(valor * 100) / 100, categoria: gmCat, chave: chaveDe(descricao), origem: "manual", quem: gmQuem, hash: "manual|" + id };
+    const linha = { casal_id: st.casal, data, descricao: descricao.slice(0, 200), valor: (ent ? 1 : -1) * Math.round(valor * 100) / 100, categoria: gmCat, chave: chaveDe(descricao), origem: "manual", quem: gmQuem, hash: "manual|" + id };
     $("gm-salvar").disabled = true; sinc("Salvando…");
     const { data: salvo, error } = await sb.from("caixa_lancamentos").insert(linha).select().single();
     $("gm-salvar").disabled = false;
@@ -403,7 +437,7 @@
     st.mes = data.slice(0, 7);
     $("gm-valor").value = ""; $("gm-desc").value = "";
     NC.render();
-    toast(`${fmt(valor)} em ${CATS[gmCat].nome} salvo`);
+    toast(ent ? `Entrada de ${fmt(valor)} (${CATS[gmCat].nome}) salva` : `${fmt(valor)} em ${CATS[gmCat].nome} salvo`);
   });
   $("g-lista").addEventListener("click", async (e) => {
     const b = e.target.closest("[data-del]"); if (!b) return;

@@ -107,6 +107,7 @@
         <div class="conta-linha">
           <div><span>Renda dos dois</span><b id="h-renda">R$ 0,00</b></div>
           <div><span>+ Já tinha na conta</span><b id="h-saldo">R$ 0,00</b></div>
+          <div id="h-extra-linha" hidden><span>+ Dinheiro extra (Pix, freela)</span><b id="h-extra">R$ 0,00</b></div>
           <div><span>− Contas do mês</span><b id="h-contas">R$ 0,00</b></div>
           <div class="total"><span>= Sobra</span><b id="h-sobra2">R$ 0,00</b></div>
         </div>
@@ -120,7 +121,10 @@
         <ul class="legenda" id="legenda"></ul>
       </div>
 
-      <button class="btn primario largo atalho-gasto" data-ir="gastos" data-foco="gm-valor"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Lançar um gasto</button>
+      <div class="atalhos">
+        <button class="btn primario atalho-gasto" data-ir="gastos" data-foco="gm-valor" data-tipo="saida"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>Lançar gasto</button>
+        <button class="btn atalho-entrada" data-ir="gastos" data-foco="gm-valor" data-tipo="entrada"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Entrou dinheiro</button>
+      </div>
 
       <div class="potes">
         <article class="pote guardar">
@@ -201,13 +205,17 @@
 
       <!-- lançar gasto à mão -->
       <form class="bloco lancar" id="form-gasto" novalidate>
-        <div class="bloco-cab"><h2>Lançar um gasto</h2><span class="muted pequeno">ex.: R$ 20 no almoço</span></div>
-        <div class="valor-grande">
+        <div class="bloco-cab"><h2 id="gm-titulo">Lançar um gasto</h2><span class="muted pequeno" id="gm-ex">ex.: R$ 20 no almoço</span></div>
+        <div class="seg tipo-lanc" role="group" aria-label="Tipo de lançamento" id="gm-tipo">
+          <button type="button" data-gtipo="saida" aria-pressed="true">− Saiu dinheiro</button>
+          <button type="button" data-gtipo="entrada" aria-pressed="false">+ Entrou dinheiro</button>
+        </div>
+        <div class="valor-grande" id="gm-valor-box">
           <em>R$</em>
           <input id="gm-valor" inputmode="decimal" placeholder="0,00" aria-label="Valor do gasto" autocomplete="off">
         </div>
         <div class="campo">
-          <span class="label">Com o quê?</span>
+          <span class="label" id="gm-cat-lbl">Com o quê?</span>
           <div class="cat-chips" id="gm-cats" role="radiogroup" aria-label="Categoria do gasto"></div>
         </div>
         <div class="grade2">
@@ -221,13 +229,14 @@
           </div>
         </div>
         <div class="campo">
-          <span class="label">Quem gastou</span>
+          <span class="label" id="gm-quem-lbl">Quem gastou</span>
           <div class="seg" role="group" aria-label="Quem gastou" id="gm-quem">
             <button type="button" data-quem="A" aria-pressed="false">Pessoa 1</button>
             <button type="button" data-quem="B" aria-pressed="false">Pessoa 2</button>
             <button type="button" data-quem="ambos" aria-pressed="true">Os dois</button>
           </div>
         </div>
+        <p class="ajuda" id="gm-ajuda" hidden>Trabalho extra, reembolso e presente somam na sobra do mês. Salário não soma de novo, porque já está na aba Renda.</p>
         <p class="msg" id="gm-msg" hidden></p>
         <button class="btn primario largo" type="submit" id="gm-salvar">Salvar gasto</button>
       </form>
@@ -278,6 +287,10 @@
           <p class="muted">Lance um gasto ou importe o extrato acima. Use as setas lá em cima para ver outros meses.</p>
         </div>
         <ul class="cats" id="g-cats"></ul>
+        <div id="g-entradas-box" hidden>
+          <h3 class="sub-titulo">De onde entrou dinheiro</h3>
+          <ul class="cats" id="g-entradas"></ul>
+        </div>
         <div class="comparar" id="g-comparar" hidden></div>
       </div>
 
