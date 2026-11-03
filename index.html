@@ -100,17 +100,22 @@
     <!-- ===== INÍCIO ===== -->
     <section class="aba" id="aba-inicio" data-aba="inicio">
       <div class="hero">
-        <p class="eyebrow">Sobra de <span class="mes-txt"></span></p>
+        <div class="visao" role="group" aria-label="Como calcular" id="visao">
+          <button type="button" data-visao="agora" aria-pressed="true">Dinheiro de agora</button>
+          <button type="button" data-visao="previsto" aria-pressed="false">Previsão do mês</button>
+        </div>
+        <p class="eyebrow" id="h-eyebrow">Sobra de <span class="mes-txt"></span></p>
         <p class="valor-hero" id="h-sobra">R$ 0,00</p>
         <p class="hero-exp" id="h-exp">É o que sobra depois de pagar todas as contas do mês.</p>
 
         <div class="conta-linha">
-          <div><span>Renda dos dois</span><b id="h-renda">R$ 0,00</b></div>
+          <div><span id="h-renda-lbl">Renda dos dois</span><b id="h-renda">R$ 0,00</b></div>
           <div><span>+ Já tinha na conta</span><b id="h-saldo">R$ 0,00</b></div>
           <div id="h-extra-linha" hidden><span>+ Dinheiro extra (Pix, freela)</span><b id="h-extra">R$ 0,00</b></div>
           <div><span>− Contas do mês</span><b id="h-contas">R$ 0,00</b></div>
           <div class="total"><span>= Sobra</span><b id="h-sobra2">R$ 0,00</b></div>
         </div>
+        <p class="hero-pendente" id="h-pendente" hidden></p>
       </div>
 
       <div class="bloco">
@@ -428,7 +433,7 @@
         <div class="bloco-cab"><h2>Conta</h2></div>
         <p class="muted pequeno" id="email-logado"></p>
         <button class="btn" id="btn-sair">Sair</button>
-        <p class="pequeno muted">Versão do app: 8 (salário recebido)</p>
+        <p class="pequeno muted">Versão do app: 9 (sobra só com salário recebido)</p>
       </div>
     </section>
   </main>

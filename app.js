@@ -37,7 +37,7 @@
   const HOJE = chaveMes(new Date());
   const st = {
     user: null, casal: null, codigo: "", membros: 0,
-    mes: HOJE, aba: "inicio", filtro: "todas",
+    mes: HOJE, aba: "inicio", visao: (() => { try { return localStorage.getItem("nc-visao") || "agora"; } catch { return "agora"; } })(), filtro: "todas",
     config: { nome_a: "Eu", nome_b: "João", renda_a: 0, renda_b: 0, pct_guardar: 40, pct_lazer: 30 },
     meses: {}, recebido: {}, contas: [], lancamentos: [], regras: {},
   };
@@ -239,13 +239,18 @@
     // dinheiro extra do mês (trabalho extra, reembolso, presente); salário não entra porque já está na renda
     const EXTRA = ["extra", "reembolso", "presente"];
     const extra = (st.lancamentos || []).filter((l) => l.valor > 0 && l.data.slice(0, 7) === m && EXTRA.includes(l.categoria)).reduce((s, l) => s + l.valor, 0);
-    const disponivel = renda + saldo + extra;
+    // salário só conta quando já foi marcado como recebido (na visão "Dinheiro de agora")
+    const rec = st.recebido[m] || {};
+    const rendaRecebida = (rec.A ? rA : 0) + (rec.B ? rB : 0);
+    const pendente = renda - rendaRecebida;
+    const rendaUsada = st.visao === "previsto" ? renda : rendaRecebida;
+    const disponivel = rendaUsada + saldo + extra;
     const sobra = disponivel - contas;
     const base = Math.max(0, sobra);
     const guardar = base * cfg.pct_guardar / 100;
     const lazer = base * cfg.pct_lazer / 100;
     const folga = Math.max(0, base - guardar - lazer);
-    return { rA, rB, renda, propA, saldo, extra, ativas, contas, pago, contaA, contaB, disponivel, sobra, guardar, lazer, folga };
+    return { rA, rB, renda, rendaRecebida, rendaUsada, pendente, propA, saldo, extra, ativas, contas, pago, contaA, contaB, disponivel, sobra, guardar, lazer, folga };
   }
 
   // ---------------- render ----------------
@@ -260,14 +265,25 @@
     $("h-sobra").textContent = fmt(r.sobra);
     $("h-sobra").classList.toggle("neg", r.sobra < 0);
     $("h-sobra2").textContent = fmt(r.sobra);
-    $("h-renda").textContent = fmt(r.renda);
+    const agora = st.visao !== "previsto";
+    document.querySelectorAll("[data-visao]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.visao === st.visao));
+    $("h-renda").textContent = fmt(r.rendaUsada);
+    $("h-renda-lbl").textContent = agora ? "Salários já recebidos" : "Salários do mês (previsto)";
+    $("h-eyebrow").firstChild.textContent = agora ? "Sobra de agora · " : "Sobra prevista de ";
+    $("h-pendente").hidden = !(r.pendente > 0);
+    if (r.pendente > 0) {
+      const faltam = ["A", "B"].filter((k) => !(st.recebido[m] || {})[k] && (k === "A" ? r.rA : r.rB) > 0).map((k) => n[k]).join(" e ");
+      $("h-pendente").textContent = agora
+        ? `Ainda falta cair o salário de ${faltam} (${fmt(r.pendente)}). Quando cair, a sobra vai para ${fmt(r.sobra + r.pendente)}. Marque como recebido no bloco "Salário" abaixo.`
+        : `Previsão contando o salário de ${faltam} (${fmt(r.pendente)}), que ainda não caiu.`;
+    }
     $("h-saldo").textContent = fmt(r.saldo);
     $("h-extra").textContent = fmt(r.extra);
     $("h-extra-linha").hidden = !r.extra;
     $("h-contas").textContent = fmt(r.contas);
     $("h-exp").textContent = r.renda === 0
       ? "Comece pela aba Renda: coloque quanto cada um ganha por mês."
-      : "É o que fica depois de pagar todas as contas do mês.";
+      : agora ? "Só conta o salário que já caiu, menos todas as contas do mês." : "Quanto vai sobrar no mês quando todos os salários caírem.";
 
     const tot = Math.max(r.disponivel, r.contas) || 1;
     const partes = [
@@ -275,7 +291,7 @@
       ["Lazer", r.lazer, "--c-lazer"], ["Folga", r.folga, "--c-folga"],
     ];
     $("barra").innerHTML = partes.filter((p) => p[1] > 0).map((p) => `<i style="width:${(p[1] / tot * 100).toFixed(2)}%;background:var(${p[2]})" title="${p[0]}"></i>`).join("");
-    $("legenda").innerHTML = partes.map((p) => `<li style="--c:var(${p[2]})"><span>${p[0]}${r.disponivel > 0 ? " · " + Math.round(p[1] / r.disponivel * 100) + "%" : ""}</span><b>${fmt(p[1])}</b></li>`).join("");
+    $("legenda").innerHTML = partes.map((p) => `<li style="--c:var(${p[2]})"><span>${p[0]}${r.disponivel > 0 && r.disponivel >= r.contas ? " · " + Math.round(p[1] / r.disponivel * 100) + "%" : ""}</span><b>${fmt(p[1])}</b></li>`).join("");
 
     $("p-guardar").textContent = fmt(r.guardar);
     $("p-lazer").textContent = fmt(r.lazer);
@@ -284,7 +300,11 @@
     $("p-lazer-pct").textContent = cfg.pct_lazer + "%";
     $("p-lazer-semana").textContent = r.lazer > 0 ? `Cerca de ${fmt(r.lazer / 4.3)} por semana` : "";
     $("aviso-negativo").hidden = r.sobra >= 0;
-    $("aviso-negativo").textContent = `Atenção: as contas de ${nomeMes(m, true)} passam o dinheiro disponível em ${fmt(-r.sobra)}. Neste mês não dá para guardar nem gastar com lazer.`;
+    $("aviso-negativo").textContent = agora && r.pendente > 0
+      ? (r.sobra + r.pendente >= 0
+          ? `Por enquanto o dinheiro que já entrou não cobre as contas do mês (faltam ${fmt(-r.sobra)}). Quando o salário cair, fica tudo certo. Até lá, melhor segurar os gastos.`
+          : `Mesmo quando os salários caírem, as contas de ${nomeMes(m, true)} passam o dinheiro em ${fmt(-(r.sobra + r.pendente))}.`)
+      : `Atenção: as contas de ${nomeMes(m, true)} passam o dinheiro disponível em ${fmt(-r.sobra)}. Neste mês não dá para guardar nem gastar com lazer.`;
 
     const qtdPagasMes = r.ativas.filter((c) => c.pagos[m]).length;
     $("pc-txt").textContent = `${qtdPagasMes} de ${r.ativas.length} contas pagas`;
@@ -409,6 +429,8 @@
       toast(novo ? `${c.nome}: ${nomeMes(st.mes, true)} marcado como pago` : `${c.nome}: pagamento desmarcado`);
       return;
     }
+    const vs = e.target.closest("[data-visao]");
+    if (vs) { st.visao = vs.dataset.visao; try { localStorage.setItem("nc-visao", st.visao); } catch {} render(); return; }
     const rcb = e.target.closest("[data-recebeu]");
     if (rcb) {
       const k = rcb.dataset.recebeu, m = st.mes;
