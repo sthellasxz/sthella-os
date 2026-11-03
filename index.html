@@ -2,359 +2,440 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SthellaOS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Nosso Caixa</title>
+  <meta name="description" content="Controle de finanças do casal: rendas, contas parceladas, quanto guardar e quanto gastar com lazer.">
+  <meta name="theme-color" content="#0E3B32" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0B1513" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Nosso Caixa">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- ===== ÁREA DE TRABALHO ===== -->
-  <main class="desktop">
+<!-- ============ CARREGANDO ============ -->
+<section id="tela-carregando" class="tela-cheia">
+  <div class="marca-grande"><img src="icons/icon.svg" alt="" width="64" height="64"><span>Nosso Caixa</span></div>
+  <p class="muted">Carregando…</p>
+</section>
 
-    <!-- Nome do sistema / marca d'água -->
-    <div class="logo-sistema">
-      <span class="logo-coracao">♥</span>
-      <h1>Sthella<span></span></h1>
-      <p>versão 1.0 </p>
+<!-- ============ LOGIN ============ -->
+<section id="tela-login" class="tela-cheia" hidden>
+  <div class="auth">
+    <div class="marca-grande"><img src="icons/icon.svg" alt="" width="64" height="64"><span>Nosso Caixa</span></div>
+    <p class="auth-sub">As finanças do casal num lugar só: quanto cada um ganha, as contas do mês e quanto dá para guardar e gastar com lazer.</p>
+
+    <div class="seg" role="tablist" aria-label="Entrar ou criar conta">
+      <button type="button" id="aba-entrar" aria-pressed="true">Já tenho conta</button>
+      <button type="button" id="aba-criar" aria-pressed="false">Criar conta</button>
     </div>
 
-    <!-- Ícones -->
-    <nav class="icones">
-      <a href="#sobre" class="icone">
-        <div class="icone-img">👩‍💻</div>
-        <span>Sobre mim</span>
-      </a>
-      <a href="#projetos" class="icone">
-        <div class="icone-img">📁</div>
-        <span>Meus Projetos</span>
-      </a>
-      <a href="#habilidades" class="icone">
-        <div class="icone-img">⭐</div>
-        <span>Habilidades</span>
-      </a>
-      <a href="#curriculo" class="icone">
-        <div class="icone-img">📄</div>
-        <span>Currículo</span>
-      </a>
-      <a href="#contato" class="icone">
-        <div class="icone-img">💌</div>
-        <span>Contato</span>
-      </a>
-      <a href="#humor" class="icone">
-        <div class="icone-img">🌸</div>
-        <span>Meu Humor</span>
-      </a>
-      <a href="#lixeira" class="icone">
-        <div class="icone-img">🗑️</div>
-        <span>Lixeira</span>
-      </a>
-    </nav>
+    <form id="form-login" class="form" novalidate>
+      <div class="campo">
+        <label for="login-email">E-mail</label>
+        <input id="login-email" type="email" autocomplete="email" inputmode="email" required placeholder="voce@email.com">
+      </div>
+      <div class="campo">
+        <label for="login-senha">Senha</label>
+        <input id="login-senha" type="password" autocomplete="current-password" required minlength="6" placeholder="Mínimo de 6 caracteres">
+      </div>
+      <p class="msg" id="login-msg" hidden></p>
+      <button class="btn primario" type="submit" id="login-btn">Entrar</button>
+    </form>
+    <p class="nota">Cada um cria a sua conta. Depois, um de vocês cria o caixa e passa o código de convite para o outro.</p>
+  </div>
+</section>
 
-    <!-- ===== JANELAS ===== -->
+<!-- ============ CRIAR OU ENTRAR NO CAIXA ============ -->
+<section id="tela-casal" class="tela-cheia" hidden>
+  <div class="auth">
+    <div class="marca-grande"><img src="icons/icon.svg" alt="" width="64" height="64"><span>Quase lá</span></div>
+    <p class="auth-sub">Vocês dois usam o mesmo caixa. Quem chegar primeiro cria; o outro entra com o código.</p>
 
-    <!-- Sobre mim -->
-    <section id="sobre" class="janela">
-      <header class="janela-barra">
-        <span class="janela-titulo">👩‍💻 Sobre mim</span>
-        <div class="janela-botoes">
-          <a href="#" class="btn min" title="Minimizar">–</a>
-          <a href="#" class="btn max" title="Maximizar">□</a>
-          <a href="#" class="btn fechar" title="Fechar">×</a>
+    <div class="cartao escolha">
+      <h3>Sou o primeiro a entrar</h3>
+      <p class="muted">Cria um caixa novo e mostra um código de 6 letras para você mandar para o seu par.</p>
+      <button class="btn primario" id="btn-criar-casal">Criar nosso caixa</button>
+    </div>
+
+    <div class="cartao escolha">
+      <h3>Já recebi um código</h3>
+      <form id="form-codigo" class="form" novalidate>
+        <div class="campo">
+          <label for="codigo">Código de convite</label>
+          <input id="codigo" maxlength="6" autocapitalize="characters" autocomplete="off" placeholder="Ex.: 7F3A9C" class="codigo-input">
         </div>
-      </header>
-      <div class="janela-conteudo sobre">
-        <div class="avatar">S</div>
+        <button class="btn" type="submit">Entrar no caixa</button>
+      </form>
+    </div>
+    <p class="msg" id="casal-msg" hidden></p>
+    <button class="link" id="btn-sair-1">Sair desta conta</button>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<div id="app" hidden>
+  <header class="topo">
+    <div class="topo-in">
+      <div class="marca"><img src="icons/icon.svg" alt="" width="30" height="30"><span>Nosso Caixa</span></div>
+      <div class="mes" role="group" aria-label="Mês">
+        <button id="mes-ant" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <span id="mes-nome">—</span>
+        <button id="mes-prox" aria-label="Próximo mês"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
+    </div>
+    <div class="sinc" id="sinc"><i></i><span>Sincronizando…</span></div>
+  </header>
+
+  <main class="conteudo">
+
+    <!-- ===== INÍCIO ===== -->
+    <section class="aba" id="aba-inicio" data-aba="inicio">
+      <div class="hero">
+        <p class="eyebrow">Sobra de <span class="mes-txt"></span></p>
+        <p class="valor-hero" id="h-sobra">R$ 0,00</p>
+        <p class="hero-exp" id="h-exp">É o que sobra depois de pagar todas as contas do mês.</p>
+
+        <div class="conta-linha">
+          <div><span>Renda dos dois</span><b id="h-renda">R$ 0,00</b></div>
+          <div><span>+ Já tinha na conta</span><b id="h-saldo">R$ 0,00</b></div>
+          <div><span>− Contas do mês</span><b id="h-contas">R$ 0,00</b></div>
+          <div class="total"><span>= Sobra</span><b id="h-sobra2">R$ 0,00</b></div>
+        </div>
+      </div>
+
+      <div class="bloco">
+        <div class="bloco-cab">
+          <h2>Para onde vai o dinheiro</h2>
+        </div>
+        <div class="barra" id="barra" role="img" aria-label="Divisão do dinheiro do mês"></div>
+        <ul class="legenda" id="legenda"></ul>
+      </div>
+
+      <div class="potes">
+        <article class="pote guardar">
+          <div class="pote-cab"><span class="pote-ic"><svg viewBox="0 0 24 24"><path d="M4 10h16v10H4zM8 10V7a4 4 0 0 1 8 0v3"/></svg></span><h3>Pode guardar</h3></div>
+          <p class="pote-valor" id="p-guardar">R$ 0,00</p>
+          <p class="pote-exp"><b id="p-guardar-pct">40%</b> da sobra vai para a poupança ou reserva.</p>
+        </article>
+        <article class="pote lazer">
+          <div class="pote-cab"><span class="pote-ic"><svg viewBox="0 0 24 24"><path d="M5 21h14M12 17v4M7 4h10l-1 7a4 4 0 0 1-8 0z"/></svg></span><h3>Pode gastar com lazer</h3></div>
+          <p class="pote-valor" id="p-lazer">R$ 0,00</p>
+          <p class="pote-exp"><b id="p-lazer-pct">30%</b> da sobra para passeios, restaurante, cinema.</p>
+          <p class="pote-sub" id="p-lazer-semana"></p>
+        </article>
+        <article class="pote folga">
+          <div class="pote-cab"><span class="pote-ic"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg></span><h3>Folga para imprevistos</h3></div>
+          <p class="pote-valor" id="p-folga">R$ 0,00</p>
+          <p class="pote-exp">O que fica livre na conta para gastos que ninguém esperava.</p>
+        </article>
+      </div>
+      <p class="aviso" id="aviso-negativo" hidden></p>
+
+      <div class="bloco">
+        <div class="bloco-cab">
+          <h2>Contas de <span class="mes-txt"></span></h2>
+          <button class="link" data-ir="contas">Ver todas</button>
+        </div>
+        <div class="progresso-contas">
+          <div class="pc-txt"><span id="pc-txt">0 de 0 pagas</span><b id="pc-falta">Falta pagar R$ 0,00</b></div>
+          <div class="trilho"><i id="pc-barra"></i></div>
+        </div>
+        <ul class="lista-mini" id="lista-proximas"></ul>
+      </div>
+
+      <div class="bloco">
+        <div class="bloco-cab"><h2>Cada um no mês</h2></div>
+        <div class="pessoas" id="pessoas-resumo"></div>
+        <p class="nota">Contas marcadas como "dos dois" são divididas na proporção da renda de cada um. Quem ganha mais paga uma parte maior.</p>
+      </div>
+    </section>
+
+    <!-- ===== CONTAS ===== -->
+    <section class="aba" id="aba-contas" data-aba="contas" hidden>
+      <div class="bloco-cab topo-aba">
         <div>
-          <h2>Olá, eu sou a Sthella! 💖</h2>
-          <p>Estudo TI no <strong>Senac Joinville</strong>, no Ensino Médio, e pretendo ingressar na faculdade de
-             <strong>Engenharia de Software</strong>.</p>
-          <p>Tenho interesse em participar de projetos relevantes na área de tecnologia, aplicando meus
-             conhecimentos e contribuindo ativamente para o desenvolvimento de soluções inovadoras.</p>
-          <ul class="tags">
-            <li>🎓 Senac Joinville</li>
-            <li>💻 Desenvolvimento</li>
-            <li>🚀 Backend</li>
-            <li>🧩 Eng. de Software</li>
+          <h1>Contas</h1>
+          <p class="muted">Tudo que vence em <span class="mes-txt"></span>. Toque no quadrado para marcar como pago.</p>
+        </div>
+      </div>
+      <div class="resumo-contas">
+        <div><span>Total do mês</span><b id="rc-total">R$ 0,00</b></div>
+        <div><span>Já pago</span><b id="rc-pago" class="ok">R$ 0,00</b></div>
+        <div><span>Falta pagar</span><b id="rc-falta" class="alerta">R$ 0,00</b></div>
+      </div>
+      <div class="seg filtro" role="group" aria-label="Filtrar contas">
+        <button type="button" data-filtro="todas" aria-pressed="true">Todas</button>
+        <button type="button" data-filtro="abertas" aria-pressed="false">A pagar</button>
+        <button type="button" data-filtro="pagas" aria-pressed="false">Pagas</button>
+      </div>
+      <ul class="contas" id="lista-contas"></ul>
+      <div class="vazio" id="contas-vazio" hidden>
+        <p><b>Nenhuma conta neste mês.</b></p>
+        <p class="muted">Adicione as compras parceladas (como um tênis em 10x) e as contas fixas (aluguel, internet, luz).</p>
+      </div>
+      <button class="btn primario largo" id="btn-nova-conta"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Adicionar conta</button>
+
+      <details class="encerradas" id="encerradas-box">
+        <summary>Parcelamentos já encerrados ou que ainda não começaram</summary>
+        <ul class="contas" id="lista-fora"></ul>
+      </details>
+    </section>
+
+    <!-- ===== GASTOS (EXTRATO) ===== -->
+    <section class="aba" id="aba-gastos" data-aba="gastos" hidden>
+      <div class="topo-aba">
+        <h1>Gastos</h1>
+        <p class="muted">Coloque o extrato do banco e o app separa o que foi gasto com comida, lazer, contas, faculdade e mais.</p>
+      </div>
+
+      <div class="bloco importar">
+        <div class="bloco-cab"><h2>Importar extrato</h2></div>
+        <label class="soltar" id="soltar" for="arquivo">
+          <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+          <b>Escolher arquivo do extrato</b>
+          <span class="muted pequeno">Aceita OFX, CSV ou PDF. Pode importar o mesmo mês de novo: o que já foi importado não se repete.</span>
+          <input type="file" id="arquivo" accept=".ofx,.qfx,.csv,.txt,.pdf,application/pdf,text/csv" hidden>
+        </label>
+        <details class="ajuda-banco">
+          <summary>Como baixar o extrato do meu banco?</summary>
+          <ul>
+            <li><b>Nubank:</b> no app, conta → Extrato → ícone de compartilhar → "Exportar extrato" (CSV ou OFX). Fatura do cartão: Cartão → Faturas → Exportar.</li>
+            <li><b>Itaú, Bradesco, Santander, Banco do Brasil, Caixa, Inter:</b> no internet banking, em Extrato, escolha o período e baixe em <b>OFX</b> (às vezes chamado de "Money" ou "Quicken").</li>
+            <li><b>Só tem PDF?</b> Funciona também, mas o OFX costuma vir mais certinho.</li>
           </ul>
+        </details>
+      </div>
+
+      <!-- pré-visualização da importação -->
+      <div class="bloco" id="previa" hidden>
+        <div class="bloco-cab">
+          <h2>Confira antes de salvar</h2>
+          <span class="muted pequeno" id="previa-info"></span>
         </div>
+        <p class="muted pequeno">Já deixamos uma categoria sugerida em cada linha. Troque o que estiver errado. Na próxima vez o app lembra da sua escolha para aquele estabelecimento.</p>
+        <label class="chk"><input type="checkbox" id="previa-inverter"> É fatura de cartão de crédito (os valores positivos são compras)</label>
+        <ul class="lanc-lista" id="previa-lista"></ul>
+        <div class="folha-acoes">
+          <button class="btn" id="previa-cancelar">Cancelar</button>
+          <button class="btn primario" id="previa-salvar">Salvar gastos</button>
+        </div>
+      </div>
+
+      <!-- análise do mês -->
+      <div class="bloco" id="analise">
+        <div class="bloco-cab"><h2>Gastos de <span class="mes-txt"></span></h2></div>
+        <div class="resumo-contas">
+          <div><span>Saiu da conta</span><b id="g-saiu" class="alerta">R$ 0,00</b></div>
+          <div><span>Entrou</span><b id="g-entrou" class="ok">R$ 0,00</b></div>
+          <div><span>Lançamentos</span><b id="g-qtd">0</b></div>
+        </div>
+        <div class="vazio" id="g-vazio">
+          <p><b>Nenhum gasto importado neste mês.</b></p>
+          <p class="muted">Importe o extrato acima. Use as setas lá em cima para ver outros meses.</p>
+        </div>
+        <ul class="cats" id="g-cats"></ul>
+        <div class="comparar" id="g-comparar" hidden></div>
+      </div>
+
+      <div class="bloco" id="g-lista-box" hidden>
+        <div class="bloco-cab">
+          <h2>Cada lançamento</h2>
+          <select id="g-filtro" aria-label="Filtrar por categoria" class="select-pequeno"></select>
+        </div>
+        <p class="muted pequeno">Toque na categoria para trocar. Os outros lançamentos do mesmo lugar mudam junto.</p>
+        <ul class="lanc-lista" id="g-lista"></ul>
       </div>
     </section>
 
-    <!-- Meus Projetos -->
-    <section id="projetos" class="janela">
-      <header class="janela-barra">
-        <span class="janela-titulo">📁 Meus Projetos</span>
-        <div class="janela-botoes">
-          <a href="#" class="btn min">–</a>
-          <a href="#" class="btn max">□</a>
-          <a href="#" class="btn fechar">×</a>
-        </div>
-      </header>
-      <div class="janela-conteudo">
-        <div class="grade-projetos">
-          <article class="projeto destaque">
-            <div class="projeto-capa">🐶</div>
-            <span class="selo">⭐ Destaque</span>
-            <h3>App de Adoção de Pets</h3>
-            <p>Aplicativo para adoção de animais, desenvolvido com Ionic e Vue.js.</p>
-            <ul class="tags mini">
-              <li>Ionic</li>
-              <li>Vue.js</li>
-            </ul>
-          </article>
-          <article class="projeto">
-            <div class="projeto-capa">🖥️</div>
-            <h3>Sthella</h3>
-            <p>Portfólio em formato de área de trabalho, feito com HTML e CSS.</p>
-            <ul class="tags mini">
-              <li>HTML</li>
-              <li>CSS</li>
-            </ul>
-          </article>
-          <article class="projeto em-breve">
-            <div class="projeto-capa">🔌</div>
-            <h3>Em breve…</h3>
-            <p>Próximos projetos com APIs REST e banco de dados.</p>
-          </article>
-        </div>
+    <!-- ===== RENDA ===== -->
+    <section class="aba" id="aba-renda" data-aba="renda" hidden>
+      <div class="topo-aba">
+        <h1>Renda e divisão</h1>
+        <p class="muted">Quanto entra por mês e como vocês querem dividir o que sobra.</p>
       </div>
-    </section>
 
-    <!-- Habilidades -->
-    <section id="habilidades" class="janela">
-      <header class="janela-barra">
-        <span class="janela-titulo">⭐ Habilidades</span>
-        <div class="janela-botoes">
-          <a href="#" class="btn min">–</a>
-          <a href="#" class="btn max">□</a>
-          <a href="#" class="btn fechar">×</a>
-        </div>
-      </header>
-      <div class="janela-conteudo">
-        <h2>💻 Tecnologias</h2>
-        <ul class="tags">
-          <li>TypeScript</li>
-          <li>Vue.js</li>
-          <li>Ionic</li>
-          <li>MySQL</li>
-          <li>HTML/CSS</li>
-        </ul>
-
-        <h2 class="espaco">📚 Atualmente estudando</h2>
-        <ul class="tags estudando">
-          <li>APIs REST</li>
-          <li>Banco de Dados</li>
-          <li>Git e GitHub</li>
-          <li>Delphi</li>
-        </ul>
-
-        <h2 class="espaco">🚀 Interesses</h2>
-        <ul class="tags">
-          <li>Backend</li>
-          <li>Engenharia de Software</li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- Currículo -->
-    <section id="curriculo" class="janela">
-      <header class="janela-barra">
-        <span class="janela-titulo">📄 Currículo.pdf</span>
-        <div class="janela-botoes">
-          <a href="#" class="btn min">–</a>
-          <a href="#" class="btn max">□</a>
-          <a href="#" class="btn fechar">×</a>
-        </div>
-      </header>
-      <div class="janela-conteudo curriculo">
-        <div class="cv-topo">
-          <h2>Sthella Miers da Silva</h2>
-          <p class="cv-dados">
-            <span>📍 Joinville, Santa Catarina</span>
-            <span>✉ sthellamiers0@gmail.com</span>
-          </p>
-        </div>
-
-        <h3>🎯 Objetivo</h3>
-        <ul>
-          <li>Em busca do primeiro emprego na área de desenvolvedor back-end.</li>
-          <li>Em busca de oportunidade de estágio na área de desenvolvedor back-end.</li>
-        </ul>
-
-        <h3>🎓 Formação acadêmica</h3>
-        <div class="cv-item">
-          <span class="cv-data">Mar 2024 – Dez 2026</span>
-          <div>
-            <strong>Senac Joinville</strong>
-            <p>Ensino Médio: Técnico em Informática</p>
-            <span class="cv-status">Cursando</span>
+      <div class="bloco">
+        <div class="bloco-cab"><h2>Quanto cada um ganha</h2><span class="muted pequeno">salário líquido por mês</span></div>
+        <div class="pessoas-edit">
+          <div class="pessoa-edit A">
+            <div class="campo">
+              <label for="nome-a">Nome</label>
+              <input id="nome-a" maxlength="20" placeholder="Seu nome">
+            </div>
+            <div class="campo">
+              <label for="renda-a">Ganha por mês</label>
+              <div class="dinheiro"><em>R$</em><input id="renda-a" inputmode="decimal" placeholder="0,00"></div>
+            </div>
+          </div>
+          <div class="pessoa-edit B">
+            <div class="campo">
+              <label for="nome-b">Nome</label>
+              <input id="nome-b" maxlength="20" placeholder="João">
+            </div>
+            <div class="campo">
+              <label for="renda-b">Ganha por mês</label>
+              <div class="dinheiro"><em>R$</em><input id="renda-b" inputmode="decimal" placeholder="0,00"></div>
+            </div>
           </div>
         </div>
-        <div class="cv-item">
-          <span class="cv-data">Atual</span>
-          <div>
-            <strong>Estudo complementar (por conta própria)</strong>
-            <p>Delphi e Banco de Dados (MySQL)</p>
-            <span class="cv-status">Cursando</span>
-          </div>
-        </div>
+        <div class="total-renda"><span>Renda total do casal</span><b id="renda-total">R$ 0,00</b></div>
+      </div>
 
-        <h3>💼 Histórico profissional</h3>
-        <div class="cv-item">
-          <span class="cv-data">Mar 2025 – Atual</span>
-          <div>
-            <strong>Assistente administrativo</strong>
-            <p>Thaty Nunes Beauty Clinic • Joinville, SC</p>
-            <ul>
-              <li>Atendimento aos clientes.</li>
-              <li>Cobrança de pagamentos.</li>
-              <li>Cadastro de clientes.</li>
-              <li>Atualização do site institucional.</li>
-              <li>Realização de agendamentos.</li>
-            </ul>
-          </div>
+      <div class="bloco">
+        <div class="bloco-cab"><h2>Dinheiro que já estava na conta</h2></div>
+        <div class="campo">
+          <label for="saldo">Sobra que ficou na conta no começo de <span class="mes-txt"></span></label>
+          <div class="dinheiro"><em>R$</em><input id="saldo" inputmode="decimal" placeholder="0,00"></div>
+          <p class="ajuda">Não inclua o salário deste mês, ele já entra pela renda acima. Esse valor é só deste mês; cada mês tem o seu.</p>
         </div>
+      </div>
 
-        <h3>🤝 Habilidades e competências</h3>
-        <ul class="tags">
-          <li>Relacionamento interpessoal eficaz</li>
-          <li>Proatividade na realização das tarefas</li>
-          <li>Comunicação clara e efetiva</li>
-          <li>Prática com sistemas e tecnologia</li>
-          <li>Conhecimento em gestão de tarefas</li>
-          <li>Atendimento ao cliente eficiente</li>
-          <li>Excel para relatórios</li>
+      <div class="bloco">
+        <div class="bloco-cab"><h2>Como dividir a sobra</h2></div>
+        <p class="muted">Depois de pagar as contas, quanto da sobra vai para cada lugar.</p>
+        <div class="slider guardar">
+          <div class="slider-cab"><label for="pct-guardar">Guardar</label><b id="pct-guardar-txt">40%</b></div>
+          <input type="range" id="pct-guardar" min="0" max="100" step="5" value="40">
+        </div>
+        <div class="slider lazer">
+          <div class="slider-cab"><label for="pct-lazer">Lazer</label><b id="pct-lazer-txt">30%</b></div>
+          <input type="range" id="pct-lazer" min="0" max="100" step="5" value="30">
+        </div>
+        <div class="slider-folga"><span>Folga para imprevistos</span><b id="pct-folga-txt">30%</b></div>
+        <div class="sugestoes">
+          <span class="muted pequeno">Sugestões:</span>
+          <button class="chip-btn" data-preset="50,30">Equilibrado 50/30</button>
+          <button class="chip-btn" data-preset="30,40">Mais lazer 30/40</button>
+          <button class="chip-btn" data-preset="70,15">Economizar 70/15</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CASAL ===== -->
+    <section class="aba" id="aba-casal" data-aba="casal" hidden>
+      <div class="topo-aba">
+        <h1>Nós dois</h1>
+        <p class="muted">Quem usa este caixa e como convidar.</p>
+      </div>
+      <div class="bloco">
+        <div class="bloco-cab"><h2>Código de convite</h2></div>
+        <p class="muted">Mande este código para o seu par. Ele cria uma conta, escolhe "Já recebi um código" e digita:</p>
+        <div class="codigo-box">
+          <span id="codigo-casal">——————</span>
+          <button class="btn" id="btn-copiar">Copiar</button>
+        </div>
+        <p class="pequeno muted" id="membros-txt"></p>
+      </div>
+      <div class="bloco">
+        <div class="bloco-cab"><h2>Instalar no celular</h2></div>
+        <button class="btn primario largo" id="btn-instalar" hidden>Instalar o app</button>
+        <ul class="passos">
+          <li><b>iPhone:</b> abra no Safari, toque em Compartilhar <span class="kbd">⬆︎</span> e depois em <b>Adicionar à Tela de Início</b>.</li>
+          <li><b>Android:</b> abra no Chrome, toque no menu <span class="kbd">⋮</span> e depois em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.</li>
         </ul>
-
-        <h3>🏅 Certificados</h3>
-        <div class="cv-item">
-          <span class="cv-data">2025</span>
-          <div>
-            <strong>Cisco Networking Academy</strong>
-            <p>Learn-A-Thon — Participante</p>
-          </div>
-        </div>
-        <div class="cv-item">
-          <span class="cv-data">2025</span>
-          <div>
-            <strong>Cisco Networking Academy</strong>
-            <p>Introduction to Modern AI — Verified</p>
-          </div>
-        </div>
+      </div>
+      <div class="bloco">
+        <div class="bloco-cab"><h2>Conta</h2></div>
+        <p class="muted pequeno" id="email-logado"></p>
+        <button class="btn" id="btn-sair">Sair</button>
       </div>
     </section>
-
-    <!-- Contato -->
-    <section id="contato" class="janela">
-      <header class="janela-barra">
-        <span class="janela-titulo">💌 Contato</span>
-        <div class="janela-botoes">
-          <a href="#" class="btn min">–</a>
-          <a href="#" class="btn max">□</a>
-          <a href="#" class="btn fechar">×</a>
-        </div>
-      </header>
-      <div class="janela-conteudo">
-        <h2>Vamos conversar? 💬</h2>
-        <div class="contatos">
-          <a href="mailto:Sthellamiers0@gmail.com" class="contato">📧 <span>Sthellamiers0@gmail.com</span></a>
-          <a href="mailto:Sthellamiers1@gmail.com" class="contato">📧 <span>Sthellamiers1@gmail.com</span></a>
-        </div>
-        <form class="formulario" onsubmit="return false">
-          <input type="text" placeholder="Seu nome">
-          <input type="email" placeholder="Seu e-mail">
-          <textarea rows="3" placeholder="Sua mensagem..."></textarea>
-          <button type="submit">Enviar 💖</button>
-        </form>
-      </div>
-    </section>
-
-    <!-- Aplicação própria: Meu Humor (feita só com CSS) -->
-    <section id="humor" class="janela">
-      <header class="janela-barra">
-        <span class="janela-titulo">🌸 Meu Humor — app da Sthella</span>
-        <div class="janela-botoes">
-          <a href="#" class="btn min">–</a>
-          <a href="#" class="btn max">□</a>
-          <a href="#" class="btn fechar">×</a>
-        </div>
-      </header>
-      <div class="janela-conteudo humor">
-        <p>Como você está se sentindo hoje?</p>
-
-        <input type="radio" name="humor" id="feliz" checked>
-        <input type="radio" name="humor" id="calma">
-        <input type="radio" name="humor" id="cansada">
-        <input type="radio" name="humor" id="apaixonada">
-
-        <div class="humor-opcoes">
-          <label for="feliz">😄</label>
-          <label for="calma">😌</label>
-          <label for="cansada">😴</label>
-          <label for="apaixonada">😍</label>
-        </div>
-
-        <div class="humor-tela">
-          <p class="msg msg-feliz">Que dia lindo! Bora codar! ✨</p>
-          <p class="msg msg-calma">Respira fundo e um passo de cada vez. 🍃</p>
-          <p class="msg msg-cansada">Hora de um cafezinho e uma pausa. ☕</p>
-          <p class="msg msg-apaixonada">Apaixonada por CSS hoje! 💕</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Lixeira -->
-    <section id="lixeira" class="janela pequena">
-      <header class="janela-barra">
-        <span class="janela-titulo">🗑️ Lixeira</span>
-        <div class="janela-botoes">
-          <a href="#" class="btn min">–</a>
-          <a href="#" class="btn max">□</a>
-          <a href="#" class="btn fechar">×</a>
-        </div>
-      </header>
-      <div class="janela-conteudo vazio">
-        <p>🧹 A lixeira está vazia.<br>Aqui só tem código limpinho!</p>
-      </div>
-    </section>
-
   </main>
 
-  <!-- ===== BARRA DE TAREFAS ===== -->
-  <footer class="barra-tarefas">
-    <a href="#" class="iniciar">♥ <strong>Sthella</strong></a>
+  <nav class="nav" aria-label="Seções">
+    <button data-ir="inicio" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Início</span></button>
+    <button data-ir="contas"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg><span>Contas</span></button>
+    <button data-ir="gastos"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg><span>Gastos</span></button>
+    <button data-ir="renda"><svg viewBox="0 0 24 24"><path d="M3 7h18v10H3zM12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM6 7V5h12v2"/></svg><span>Renda</span></button>
+    <button data-ir="casal"><svg viewBox="0 0 24 24"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3 3-5 6-5s6 2 6 5M14 15.5c.6-.3 1.3-.5 2-.5 3 0 6 2 6 5"/></svg><span>Nós dois</span></button>
+  </nav>
+</div>
 
-    <div class="tarefas">
-      <a href="#sobre" title="Sobre mim">👩‍💻</a>
-      <a href="#projetos" title="Meus Projetos">📁</a>
-      <a href="#habilidades" title="Habilidades">⭐</a>
-      <a href="#curriculo" title="Currículo">📄</a>
-      <a href="#contato" title="Contato">💌</a>
-      <a href="#humor" title="Meu Humor">🌸</a>
+<!-- ============ FOLHA: NOVA / EDITAR CONTA ============ -->
+<div class="folha-fundo" id="folha-fundo" hidden></div>
+<div class="folha" id="folha" role="dialog" aria-modal="true" aria-labelledby="folha-titulo" hidden>
+  <div class="folha-pega" aria-hidden="true"></div>
+  <div class="folha-cab">
+    <h2 id="folha-titulo">Nova conta</h2>
+    <button class="fechar" id="folha-fechar" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <form id="form-conta" class="form" novalidate>
+    <div class="campo">
+      <label for="c-nome">O que é</label>
+      <input id="c-nome" maxlength="60" placeholder="Ex.: Tênis Nike, Aluguel, Internet" required>
     </div>
 
-    <div class="bandeja">
-      <span title="Wi-Fi">📶</span>
-      <span title="Volume">🔊</span>
-      <div class="relogio">
-        <span id="hora">00:00</span>
-        <span id="data">--/--/----</span>
+    <div class="campo">
+      <span class="label">Tipo de conta</span>
+      <div class="seg" role="group" aria-label="Tipo de conta">
+        <button type="button" id="c-tipo-parc" aria-pressed="true">Parcelada</button>
+        <button type="button" id="c-tipo-fixa" aria-pressed="false">Fixa todo mês</button>
+      </div>
+      <p class="ajuda" id="c-tipo-ajuda">Compra dividida em parcelas que um dia acabam (tênis, celular, viagem).</p>
+    </div>
+
+    <div class="grade2" id="c-linha-parc">
+      <div class="campo">
+        <label for="c-total">Valor total</label>
+        <div class="dinheiro"><em>R$</em><input id="c-total" inputmode="decimal" placeholder="600,00"></div>
+      </div>
+      <div class="campo">
+        <label for="c-n">Nº de parcelas</label>
+        <input id="c-n" inputmode="numeric" placeholder="10">
       </div>
     </div>
-  </footer>
 
-  <!-- Script mínimo só para o relógio funcionar em tempo real -->
-  <script>
-    function atualizarRelogio() {
-      const agora = new Date();
-      document.getElementById('hora').textContent =
-        agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      document.getElementById('data').textContent = agora.toLocaleDateString('pt-BR');
-    }
-    atualizarRelogio();
-    setInterval(atualizarRelogio, 1000);
-  </script>
+    <div class="grade2">
+      <div class="campo">
+        <label for="c-parcela" id="c-parcela-lbl">Valor de cada parcela</label>
+        <div class="dinheiro"><em>R$</em><input id="c-parcela" inputmode="decimal" placeholder="60,00"></div>
+      </div>
+      <div class="campo">
+        <label for="c-inicio" id="c-inicio-lbl">Mês da 1ª parcela</label>
+        <input id="c-inicio" type="month">
+      </div>
+    </div>
+    <p class="ajuda" id="c-calc"></p>
+
+    <div class="grade2">
+      <div class="campo">
+        <label for="c-quem">Quem paga</label>
+        <select id="c-quem"><option value="ambos">Os dois</option><option value="A">Pessoa 1</option><option value="B">Pessoa 2</option></select>
+      </div>
+      <div class="campo">
+        <label for="c-cat">Categoria</label>
+        <select id="c-cat"></select>
+      </div>
+    </div>
+
+    <div class="campo" id="c-meses-box">
+      <span class="label">Meses já pagos</span>
+      <p class="ajuda">Toque num mês para marcar ou desmarcar como pago.</p>
+      <div class="meses-grade" id="c-meses"></div>
+    </div>
+
+    <p class="msg" id="c-msg" hidden></p>
+    <div class="folha-acoes">
+      <button class="btn perigo" type="button" id="c-excluir" hidden>Excluir</button>
+      <button class="btn primario" type="submit" id="c-salvar">Salvar conta</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script src="extrato.js"></script>
 </body>
 </html>
