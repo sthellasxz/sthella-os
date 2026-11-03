@@ -220,7 +220,7 @@
 
   async function lerPDF(buf, senha) {
     const linhas = await textoPDF(buf, senha);
-    return { itens: lerLinhasPDF(linhas), pdf: true };
+    return { itens: lerLinhasPDF(linhas), pdf: true, linhas };
   }
 
   // ---------------- pré-visualização ----------------
@@ -336,9 +336,19 @@
   });
 
   let pdfBuf = null;
+  $("pdf-diag-fechar").onclick = () => ($("pdf-diag").hidden = true);
   function usarResultado(res) {
     if (res.erro) return toast(res.erro);
-    if (!res.itens.length) return toast(res.pdf ? "Não encontrei lançamentos neste PDF. Se puder, baixe o extrato em OFX ou CSV e me mande o nome do banco." : "Não encontrei lançamentos neste arquivo.");
+    $("pdf-diag").hidden = true;
+    if (!res.itens.length) {
+      if (res.pdf && res.linhas) {
+        $("pdf-diag-texto").textContent = res.linhas.slice(0, 60).join("\n");
+        $("pdf-diag").hidden = false;
+        $("pdf-diag").scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      return toast("Não encontrei lançamentos neste arquivo.");
+    }
     $("pdf-senha-box").hidden = true;
     ultimosItens = res.itens;
     $("previa-inverter").checked = !!res.cartao;

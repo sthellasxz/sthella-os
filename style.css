@@ -454,3 +454,6 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 #nl-badge-frame, iframe[title="Powered by Netlify"] { display: none !important; visibility: hidden !important; pointer-events: none !important; }
 
 .senha-box { display: flex; flex-direction: column; gap: 12px; background: var(--lazer-suave); border-radius: 14px; padding: 14px; font-size: .9rem; }
+
+.diag { display: flex; flex-direction: column; gap: 10px; background: var(--afundado); border-radius: 14px; padding: 14px; font-size: .88rem; }
+.diag pre { margin: 0; max-height: 50vh; overflow: auto; background: var(--superficie); border: 1px solid var(--linha); border-radius: 10px; padding: 10px; font-size: .72rem; line-height: 1.4; white-space: pre-wrap; word-break: break-word; }

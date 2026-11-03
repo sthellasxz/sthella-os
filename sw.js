@@ -1,6 +1,6 @@
 // Guarda os arquivos do app para abrir rápido e funcionar como app instalado.
 // Os dados (Supabase) sempre vêm da internet, nunca do cache.
-const VERSAO = "nc-v6";
+const VERSAO = "nc-v7";
 const ARQUIVOS = ["./", "index.html", "style.css", "app.js", "config.js", "extrato.js", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(VERSAO).then((c) => c.addAll(ARQUIVOS))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => {
@@ -12,7 +12,7 @@ self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
   // rede primeiro, cache se estiver sem internet
   e.respondWith(
-    fetch(e.request).then((r) => { const cp = r.clone(); caches.open(VERSAO).then((c) => c.put(e.request, cp)); return r; })
+    fetch(e.request, { cache: "no-store" }).then((r) => { const cp = r.clone(); caches.open(VERSAO).then((c) => c.put(e.request, cp)); return r; })
       .catch(() => caches.match(e.request).then((r) => r || caches.match("index.html")))
   );
 });

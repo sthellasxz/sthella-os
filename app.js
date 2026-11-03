@@ -551,7 +551,16 @@
   let promptInstalar = null;
   window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); promptInstalar = e; $("btn-instalar").hidden = false; });
   $("btn-instalar").onclick = async () => { if (!promptInstalar) return; promptInstalar.prompt(); await promptInstalar.userChoice; promptInstalar = null; $("btn-instalar").hidden = true; };
-  if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  // atualiza o app sozinho quando sai uma versão nova
+  if ("serviceWorker" in navigator) {
+    const jaTinha = !!navigator.serviceWorker.controller;
+    let recarregou = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (jaTinha && !recarregou) { recarregou = true; location.reload(); } });
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+      reg.update();
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) reg.update(); });
+    }).catch(() => {}));
+  }
 
   // ---------------- início ----------------
   async function iniciar() {

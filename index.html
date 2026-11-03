@@ -258,6 +258,11 @@
           <p class="msg" id="pdf-senha-msg" hidden>Senha errada. Confira e tente de novo.</p>
           <button class="btn primario largo" type="submit" id="pdf-senha-ok">Abrir PDF</button>
         </form>
+        <div class="diag" id="pdf-diag" hidden>
+          <p><b>Não consegui achar os lançamentos neste PDF.</b> Cada banco monta o PDF de um jeito. Para eu ajustar ao seu banco, veja abaixo o texto que o app conseguiu ler e me mande um print (pode cobrir nomes e números que preferir esconder).</p>
+          <pre id="pdf-diag-texto"></pre>
+          <button class="btn largo" type="button" id="pdf-diag-fechar">Fechar</button>
+        </div>
         <details class="ajuda-banco">
           <summary>Como baixar o extrato do meu banco?</summary>
           <ul>
@@ -404,6 +409,7 @@
         <div class="bloco-cab"><h2>Conta</h2></div>
         <p class="muted pequeno" id="email-logado"></p>
         <button class="btn" id="btn-sair">Sair</button>
+        <p class="pequeno muted">Versão do app: 7 (leitura de PDF melhorada)</p>
       </div>
     </section>
   </main>
