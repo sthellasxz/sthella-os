@@ -249,12 +249,21 @@
           <span class="muted pequeno">Aceita OFX, CSV ou PDF. Pode importar o mesmo mês de novo: o que já foi importado não se repete.</span>
           <input type="file" id="arquivo" accept=".ofx,.qfx,.csv,.txt,.pdf,application/pdf,text/csv" hidden>
         </label>
+        <form class="senha-box" id="pdf-senha-box" hidden novalidate>
+          <p><b>Este PDF tem senha.</b> Muitos bancos usam os primeiros números do CPF (por exemplo, os 5 ou 6 primeiros). A senha não é salva em lugar nenhum.</p>
+          <div class="campo">
+            <label for="pdf-senha">Senha do PDF</label>
+            <input id="pdf-senha" type="password" inputmode="numeric" autocomplete="off" placeholder="Ex.: 12345">
+          </div>
+          <p class="msg" id="pdf-senha-msg" hidden>Senha errada. Confira e tente de novo.</p>
+          <button class="btn primario largo" type="submit" id="pdf-senha-ok">Abrir PDF</button>
+        </form>
         <details class="ajuda-banco">
           <summary>Como baixar o extrato do meu banco?</summary>
           <ul>
             <li><b>Nubank:</b> no app, conta → Extrato → ícone de compartilhar → "Exportar extrato" (CSV ou OFX). Fatura do cartão: Cartão → Faturas → Exportar.</li>
             <li><b>Itaú, Bradesco, Santander, Banco do Brasil, Caixa, Inter:</b> no internet banking, em Extrato, escolha o período e baixe em <b>OFX</b> (às vezes chamado de "Money" ou "Quicken").</li>
-            <li><b>Só tem PDF?</b> Funciona também, mas o OFX costuma vir mais certinho.</li>
+            <li><b>Só tem PDF?</b> Funciona também, inclusive PDF com senha. Só não funciona PDF que é foto ou escaneado. O OFX costuma vir mais certinho.</li>
           </ul>
         </details>
       </div>

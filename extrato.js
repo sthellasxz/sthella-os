@@ -145,45 +145,82 @@
     });
     return pdfjsPronto;
   }
-  async function lerPDF(buf) {
+  const MESES = { jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6, jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12 };
+  // lê o texto do PDF e monta as linhas como aparecem na página
+  async function textoPDF(buf, senha) {
     const pdfjs = await carregarPdfJs();
-    const doc = await pdfjs.getDocument({ data: buf }).promise;
+    let doc;
+    try {
+      doc = await pdfjs.getDocument({ data: new Uint8Array(buf.slice(0)), password: senha || undefined }).promise;
+    } catch (err) {
+      if (err && err.name === "PasswordException") throw { precisaSenha: true, senhaErrada: !!senha };
+      throw new Error("Não consegui abrir este PDF. Ele pode estar corrompido.");
+    }
     const linhas = [];
     for (let p = 1; p <= doc.numPages; p++) {
-      const pg = await doc.getPage(p);
-      const tc = await pg.getTextContent();
-      const porY = new Map();
-      for (const it of tc.items) {
-        if (!it.str.trim()) continue;
-        const y = Math.round(it.transform[5] / 3);
-        if (!porY.has(y)) porY.set(y, []);
-        porY.get(y).push([it.transform[4], it.str]);
+      const tc = await (await doc.getPage(p)).getTextContent();
+      const itens = tc.items.filter((it) => it.str && it.str.trim()).map((it) => ({ x: it.transform[4], y: it.transform[5], t: it.str }));
+      itens.sort((a, b) => b.y - a.y || a.x - b.x);
+      const grupos = [];
+      for (const it of itens) {
+        const g = grupos.find((g) => Math.abs(g.y - it.y) < 3);
+        if (g) g.itens.push(it); else grupos.push({ y: it.y, itens: [it] });
       }
-      [...porY.entries()].sort((a, b) => b[0] - a[0]).forEach(([, its]) => linhas.push(its.sort((a, b) => a[0] - b[0]).map((x) => x[1]).join(" ").replace(/\s+/g, " ").trim()));
+      grupos.sort((a, b) => b.y - a.y).forEach((g) => linhas.push(g.itens.sort((a, b) => a.x - b.x).map((i) => i.t).join(" ").replace(/\s+/g, " ").trim()));
     }
+    return linhas;
+  }
+
+  function lerLinhasPDF(linhas) {
     const texto = linhas.join("\n");
+    if (texto.replace(/\s/g, "").length < 30) throw new Error("Este PDF parece ser uma imagem (foto ou escaneado), então não dá para ler o texto. Baixe o extrato em PDF pelo app do banco, ou em OFX ou CSV.");
     const anoM = texto.match(/\b(20\d{2})\b/);
-    const ano = anoM ? anoM[1] : new Date().getFullYear();
+    const anoPadrao = anoM ? +anoM[1] : new Date().getFullYear();
+    const reData = /^(?:(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?|(\d{1,2})\s+(?:de\s+)?(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-zç]*\.?(?:\s+(?:de\s+)?(\d{4}))?)\b\s*/i;
+    const reValor = /(?:R\$\s*)?([-−–+]\s?)?(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2})(\s?[-DC]\b|\s?-)?/i;
+    const temNegativo = /(^|\s)[-−–]\s?(R\$\s*)?\d{1,3}(\.\d{3})*,\d{2}|\d,\d{2}\s?(-|D\b)/m.test(texto);
     const itens = [];
-    let dataAtual = null;
-    const reValor = /(-?\s?R?\$?\s?-?\d{1,3}(?:\.\d{3})*,\d{2}\s?[-DC]?)\s*$/i;
+    let dataAtual = null, modo = 0, pendente = "";
     for (let l of linhas) {
-      const md = l.match(/^(\d{2}\/\d{2}(?:\/\d{2,4})?)\s+/);
-      if (md) { dataAtual = dataISO(md[1], ano); l = l.slice(md[0].length); }
-      if (!dataAtual) continue;
-      if (/saldo|total|limite/i.test(l)) continue;
-      // pega o primeiro valor monetário da linha (o último costuma ser o saldo)
-      const valores = l.match(/-?\s?R?\$?\s?-?\d{1,3}(?:\.\d{3})*,\d{2}\s?[-DC]?/gi);
-      if (!valores) continue;
-      const vTxt = valores[0];
-      const desc = l.slice(0, l.indexOf(vTxt)).trim();
+      const sem = semAcento(l);
+      // seções de saídas e entradas (formato Nubank e parecidos)
+      if (/^total de saidas|^saidas\b|^debitos\b|^valores debitados/.test(sem)) { modo = -1; continue; }
+      if (/^total de entradas|^entradas\b|^creditos\b|^valores creditados/.test(sem)) { modo = 1; continue; }
+      const md = l.match(reData);
+      if (md) {
+        const dia = md[1] || md[4], mes = md[2] || MESES[semAcento(md[5]).slice(0, 3)], ano = md[3] || md[6];
+        const y = ano ? (String(ano).length === 2 ? 2000 + +ano : +ano) : anoPadrao;
+        if (+mes >= 1 && +mes <= 12 && +dia >= 1 && +dia <= 31) {
+          dataAtual = `${y}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+          l = l.slice(md[0].length).trim();
+          if (!/\d,\d{2}/.test(l)) modo = 0; // novo dia: zera a seção
+        }
+      }
+      if (!dataAtual || !l) continue;
+      if (/saldo|^total|limite dispon|resumo|pagina \d|periodo|extrato|agencia|conta corrente|^data\b|lancamento.*valor/.test(semAcento(l))) { pendente = ""; continue; }
+      const mv = l.match(reValor);
+      if (!mv) { if (l.length > 2 && /[a-z]/i.test(l)) pendente = (pendente ? pendente + " " : "") + l; continue; }
+      let desc = l.slice(0, mv.index).replace(/[-−–+]\s*$/, "").trim();
+      if (desc.length < 2) desc = pendente;
+      pendente = "";
       if (!desc || desc.length < 2) continue;
-      let valor = numBR(vTxt);
-      if (!isFinite(valor) || valor === 0) continue;
-      if (/C$/i.test(vTxt.trim())) valor = Math.abs(valor);
-      itens.push({ data: dataAtual, descricao: desc.slice(0, 200), valor });
+      let valor = parseFloat(mv[2].replace(/\./g, "").replace(",", "."));
+      if (!valor) continue;
+      const sinal = (mv[1] || "").trim(), suf = (mv[3] || "").trim().toUpperCase();
+      let neg;
+      if (/[-−–]/.test(sinal) || suf === "-" || suf === "D") neg = true;
+      else if (sinal === "+" || suf === "C") neg = false;
+      else if (modo) neg = modo < 0;
+      else if (temNegativo) neg = false; // o banco marca as saídas com "-": sem sinal é entrada
+      else neg = !/recebid|recebimento|salario|deposito|estorno|credito em conta|rendimento/.test(semAcento(desc));
+      itens.push({ data: dataAtual, descricao: desc.slice(0, 200), valor: neg ? -valor : valor });
     }
-    return { itens, pdf: true };
+    return itens;
+  }
+
+  async function lerPDF(buf, senha) {
+    const linhas = await textoPDF(buf, senha);
+    return { itens: lerLinhasPDF(linhas), pdf: true };
   }
 
   // ---------------- pré-visualização ----------------
@@ -281,22 +318,50 @@
     try {
       const nome = f.name.toLowerCase();
       let res;
-      if (nome.endsWith(".pdf") || f.type === "application/pdf") res = await lerPDF(await f.arrayBuffer());
+      if (nome.endsWith(".pdf") || f.type === "application/pdf") {
+        pdfBuf = await f.arrayBuffer();
+        $("pdf-senha-box").hidden = true;
+        res = await lerPDF(pdfBuf);
+      }
       else {
         const buf = await f.arrayBuffer();
         let txt = new TextDecoder("utf-8").decode(buf);
         if (txt.includes("�")) txt = new TextDecoder("windows-1252").decode(buf);
         res = /<OFX>|OFXHEADER|<STMTTRN>/i.test(txt) ? lerOFX(txt) : lerCSV(txt);
       }
-      if (res.erro) return toast(res.erro);
-      if (!res.itens.length) return toast(res.pdf ? "Não encontrei lançamentos neste PDF. Tente baixar o extrato em OFX ou CSV." : "Não encontrei lançamentos neste arquivo.");
-      ultimosItens = res.itens;
-      $("previa-inverter").checked = !!res.cartao;
-      montarPrevia(res.itens);
+      usarResultado(res);
     } catch (err) {
-      console.error(err);
-      toast(err.message || "Não consegui ler este arquivo.");
+      tratarErro(err);
     } finally { $("soltar").classList.remove("lendo"); }
+  });
+
+  let pdfBuf = null;
+  function usarResultado(res) {
+    if (res.erro) return toast(res.erro);
+    if (!res.itens.length) return toast(res.pdf ? "Não encontrei lançamentos neste PDF. Se puder, baixe o extrato em OFX ou CSV e me mande o nome do banco." : "Não encontrei lançamentos neste arquivo.");
+    $("pdf-senha-box").hidden = true;
+    ultimosItens = res.itens;
+    $("previa-inverter").checked = !!res.cartao;
+    montarPrevia(res.itens);
+  }
+  function tratarErro(err) {
+    if (err && err.precisaSenha) {
+      $("pdf-senha-box").hidden = false;
+      $("pdf-senha-msg").hidden = !err.senhaErrada;
+      $("pdf-senha").value = "";
+      setTimeout(() => $("pdf-senha").focus(), 50);
+      return toast(err.senhaErrada ? "Senha errada. Tente de novo." : "Este PDF tem senha.");
+    }
+    console.error(err);
+    toast((err && err.message) || "Não consegui ler este arquivo.");
+  }
+  $("pdf-senha-box").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!pdfBuf) return;
+    $("pdf-senha-ok").disabled = true;
+    try { usarResultado(await lerPDF(pdfBuf, $("pdf-senha").value.trim())); }
+    catch (err) { tratarErro(err); }
+    finally { $("pdf-senha-ok").disabled = false; }
   });
 
   // ---------------- análise do mês ----------------

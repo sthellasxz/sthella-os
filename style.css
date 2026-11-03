@@ -452,3 +452,5 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 
 /* esconde o selo "Powered by Netlify" que a hospedagem insere por cima do app */
 #nl-badge-frame, iframe[title="Powered by Netlify"] { display: none !important; visibility: hidden !important; pointer-events: none !important; }
+
+.senha-box { display: flex; flex-direction: column; gap: 12px; background: var(--lazer-suave); border-radius: 14px; padding: 14px; font-size: .9rem; }
