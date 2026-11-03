@@ -552,3 +552,19 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .conta-linha .h-info { order: 10; opacity: .85; font-size: .85rem; border-top: 1px dashed rgba(255,255,255,.25); margin-top: 4px; padding-top: 8px; }
 .conta-linha .h-info b { color: #FDBA74; }
 .saldo-card .fim { border-top: 0; padding-top: 0; }
+
+/* ---------- topo separado por pessoa ---------- */
+.h-pessoas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 4px; }
+.h-pessoa {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer; min-width: 0;
+  background: rgba(255,255,255,.08); border: 0; border-top: 4px solid var(--p-a); border-radius: 14px; padding: 12px; color: inherit;
+}
+.h-pessoa.B { border-top-color: var(--p-b); }
+.hp-nome { font-family: var(--f-titulo); font-size: 1.1rem; margin-bottom: 6px; overflow-wrap: anywhere; text-transform: capitalize; }
+.hp-lbl { font-size: .74rem; opacity: .75; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.hp-valor { font-family: var(--f-titulo); font-weight: 800; font-size: clamp(1.3rem, 6vw, 1.7rem); letter-spacing: -.02em; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+.hp-total { font-weight: 800; font-size: 1.1rem; color: #FDBA74; font-variant-numeric: tabular-nums; }
+.hp-det { font-size: .76rem; opacity: .8; }
+.hp-acao { align-self: flex-start; font-size: .76rem; font-weight: 700; border: 1.5px solid currentColor; border-radius: 999px; padding: 3px 9px; margin: -4px 0 8px; }
+@media (max-width: 360px) { .h-pessoas { grid-template-columns: 1fr; } }
+.hp-valor.neg { color: #FDA4AF; }

@@ -333,6 +333,28 @@
     $("saldo-resto-btn").textContent = r.saldo <= 0 ? "—" : temS <= 0 ? "Já acabou" : temS >= r.saldo ? "Ainda tem tudo" : `Ainda tem ${fmt(temS)}`;
     $("saldo-resto-btn").disabled = r.saldo <= 0;
     $("h-contas").textContent = fmt(r.contas);
+    // com saldo informado: cada um separado, sem somar as duas contas
+    const separado = r.modoBanco;
+    $("h-pessoas").hidden = !separado;
+    $("h-sobra").hidden = separado;
+    document.querySelector(".hero .conta-linha").hidden = separado;
+    if (separado) {
+      $("h-eyebrow").firstChild.textContent = "Cada um em ";
+      const bkm0 = st.banco[m] || {};
+      $("h-pessoas").innerHTML = ["A", "B"].map((k) => {
+        const banco = k === "A" ? r.bancoA : r.bancoB;
+        const total = k === "A" ? r.contaA : r.contaB, falta = k === "A" ? r.naoPagasA : r.naoPagasB, pagoP = total - falta;
+        return `<button type="button" class="h-pessoa ${k}" data-banco="${k}">
+          <b class="hp-nome">${esc(n[k])}</b>
+          <span class="hp-lbl">Tem na conta</span>
+          <span class="hp-valor${banco != null && banco < 0 ? " neg" : ""}">${banco == null ? "—" : fmt(banco)}</span>
+          ${banco == null ? `<span class="hp-acao">Informar saldo</span>` : ""}
+          <span class="hp-lbl">Vai pagar no mês</span>
+          <span class="hp-total">${fmt(total)}</span>
+          <span class="hp-det">${falta > 0 ? `Já pagou ${fmt(pagoP)} · falta ${fmt(falta)}` : total > 0 ? "Tudo pago" : "Nenhuma conta"}</span>
+        </button>`;
+      }).join("");
+    }
     document.querySelectorAll(".h-banco").forEach((el) => (el.hidden = !r.modoBanco));
     document.querySelectorAll(".h-normal").forEach((el) => (el.hidden = r.modoBanco));
     if (r.modoBanco) {
@@ -344,7 +366,7 @@
     }
     $("h-exp").textContent = r.renda === 0
       ? "Comece pela aba Renda: coloque quanto cada um ganha por mês."
-      : r.modoBanco ? "É o que tem nas contas agora. Cada conta sai do saldo quando vocês marcam como paga." : agora ? "Só conta o salário que já caiu, menos todas as contas do mês." : "Quanto vai sobrar no mês quando todos os salários caírem.";
+      : r.modoBanco ? "Toque no nome para atualizar o saldo. Cada conta sai do saldo de quem paga quando vocês marcam como paga. Contas dos dois são divididas pela renda." : agora ? "Só conta o salário que já caiu, menos todas as contas do mês." : "Quanto vai sobrar no mês quando todos os salários caírem.";
 
     const tot = Math.max(r.disponivel, r.contasBarra) || 1;
     const partes = [
@@ -422,24 +444,6 @@
     // casal
     $("codigo-casal").textContent = st.codigo || "——————";
     $("membros-txt").textContent = st.membros >= 2 ? "Vocês dois já estão neste caixa." : "Por enquanto só você está neste caixa.";
-    // saldo de cada um, separado
-    const bkm0 = st.banco[m] || {};
-    $("saldo-cards").innerHTML = ["A", "B"].map((k) => {
-      const banco = k === "A" ? r.bancoA : r.bancoB, falta = k === "A" ? r.naoPagasA : r.naoPagasB;
-      if (banco == null) {
-        return `<button type="button" class="saldo-card ${k} vazio" data-banco="${k}"><h3>${esc(n[k])}</h3>
-          <p class="muted pequeno">Saldo de ${nomeMes(m)} não informado</p>
-          <span class="saldo-acao">Informar saldo</span>
-          <dl><div><dt>Contas a pagar</dt><dd class="alerta">${fmt(falta)}</dd></div></dl></button>`;
-      }
-      return `<button type="button" class="saldo-card ${k}" data-banco="${k}"><h3>${esc(n[k])}</h3>
-        <dl>
-          <div class="fim"><dt>Sobra (tem na conta)</dt><dd class="${banco < 0 ? "neg" : "ok"}">${fmt(banco)}</dd></div>
-          <div><dt>Ainda falta pagar</dt><dd class="${falta > 0 ? "alerta" : "ok"}">${falta > 0 ? fmt(falta) : "Nada, tudo pago"}</dd></div>
-        </dl>
-        <small class="muted">${falta > 0 ? "Sai do saldo quando marcar a conta como paga. " : ""}${bkm0.em ? "Atualizado em " + new Date(bkm0.em).toLocaleDateString("pt-BR") : ""}</small></button>`;
-    }).join("");
-
     // salário recebido no mês
     const rec = st.recebido[m] || {};
     document.querySelectorAll("[data-recebeu]").forEach((b) => {
