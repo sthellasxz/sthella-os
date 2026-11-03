@@ -120,6 +120,8 @@
         <ul class="legenda" id="legenda"></ul>
       </div>
 
+      <button class="btn primario largo atalho-gasto" data-ir="gastos" data-foco="gm-valor"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Lançar um gasto</button>
+
       <div class="potes">
         <article class="pote guardar">
           <div class="pote-cab"><span class="pote-ic"><svg viewBox="0 0 24 24"><path d="M4 10h16v10H4zM8 10V7a4 4 0 0 1 8 0v3"/></svg></span><h3>Pode guardar</h3></div>
@@ -194,8 +196,41 @@
     <section class="aba" id="aba-gastos" data-aba="gastos" hidden>
       <div class="topo-aba">
         <h1>Gastos</h1>
-        <p class="muted">Coloque o extrato do banco e o app separa o que foi gasto com comida, lazer, contas, faculdade e mais.</p>
+        <p class="muted">Lance cada gasto na hora (como R$ 20 no almoço) ou importe o extrato do banco. O app separa tudo em alimentação, lazer, contas, faculdade e mais.</p>
       </div>
+
+      <!-- lançar gasto à mão -->
+      <form class="bloco lancar" id="form-gasto" novalidate>
+        <div class="bloco-cab"><h2>Lançar um gasto</h2><span class="muted pequeno">ex.: R$ 20 no almoço</span></div>
+        <div class="valor-grande">
+          <em>R$</em>
+          <input id="gm-valor" inputmode="decimal" placeholder="0,00" aria-label="Valor do gasto" autocomplete="off">
+        </div>
+        <div class="campo">
+          <span class="label">Com o quê?</span>
+          <div class="cat-chips" id="gm-cats" role="radiogroup" aria-label="Categoria do gasto"></div>
+        </div>
+        <div class="grade2">
+          <div class="campo">
+            <label for="gm-desc">Descrição (opcional)</label>
+            <input id="gm-desc" maxlength="80" placeholder="Ex.: almoço, Uber, xerox">
+          </div>
+          <div class="campo">
+            <label for="gm-data">Dia</label>
+            <input id="gm-data" type="date">
+          </div>
+        </div>
+        <div class="campo">
+          <span class="label">Quem gastou</span>
+          <div class="seg" role="group" aria-label="Quem gastou" id="gm-quem">
+            <button type="button" data-quem="A" aria-pressed="false">Pessoa 1</button>
+            <button type="button" data-quem="B" aria-pressed="false">Pessoa 2</button>
+            <button type="button" data-quem="ambos" aria-pressed="true">Os dois</button>
+          </div>
+        </div>
+        <p class="msg" id="gm-msg" hidden></p>
+        <button class="btn primario largo" type="submit" id="gm-salvar">Salvar gasto</button>
+      </form>
 
       <div class="bloco importar">
         <div class="bloco-cab"><h2>Importar extrato</h2></div>
@@ -239,8 +274,8 @@
           <div><span>Lançamentos</span><b id="g-qtd">0</b></div>
         </div>
         <div class="vazio" id="g-vazio">
-          <p><b>Nenhum gasto importado neste mês.</b></p>
-          <p class="muted">Importe o extrato acima. Use as setas lá em cima para ver outros meses.</p>
+          <p><b>Nenhum gasto neste mês ainda.</b></p>
+          <p class="muted">Lance um gasto ou importe o extrato acima. Use as setas lá em cima para ver outros meses.</p>
         </div>
         <ul class="cats" id="g-cats"></ul>
         <div class="comparar" id="g-comparar" hidden></div>

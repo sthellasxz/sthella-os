@@ -9,7 +9,7 @@
 
   // ---------------- categorias ----------------
   const CATS = {
-    comida:       { nome: "Comida e mercado", cor: "#E0703A" },
+    comida:       { nome: "Alimentação e mercado", cor: "#E0703A" },
     lazer:        { nome: "Lazer",            cor: "#E0A21E" },
     contas:       { nome: "Contas da casa",   cor: "#5B7BA6" },
     moradia:      { nome: "Moradia",          cor: "#3E5C76" },
@@ -219,9 +219,10 @@
       ${ehPrevia ? `<input type="checkbox" class="lanc-chk" data-inc="${i}" ${l.incluir ? "checked" : ""} aria-label="Incluir ${esc(l.descricao)}">` : ""}
       <div class="lanc-corpo">
         <div class="lanc-l1"><span class="lanc-desc">${esc(l.descricao)}</span><b class="${l.valor > 0 ? "ok" : ""}">${l.valor > 0 ? "+" : "−"} ${fmt(Math.abs(l.valor))}</b></div>
-        <div class="lanc-l2"><span class="muted pequeno">${dt}${l.repetido ? " · já importado" : ""}</span>
+        <div class="lanc-l2"><span class="muted pequeno">${dt}${l.repetido ? " · já importado" : ""}${!ehPrevia && l.origem === "manual" ? " · " + esc(quemNome(l.quem)) : ""}</span>
           <select class="cat-sel" ${ehPrevia ? `data-pcat="${i}"` : `data-lcat="${l.id}"`} aria-label="Categoria">${optsCategorias(l.categoria)}</select>
         </div>
+        ${ehPrevia ? "" : `<button class="del-lanc" data-del="${l.id}" type="button">excluir</button>`}
       </div>
     </li>`;
   }
@@ -302,6 +303,12 @@
     const sel = e.target.closest("[data-lcat]"); if (!sel) return;
     const l = st.lancamentos.find((x) => x.id === sel.dataset.lcat); if (!l) return;
     const nova = sel.value, chave = l.chave || chaveDe(l.descricao);
+    if (l.origem === "manual") {
+      l.categoria = nova; render(); sinc("Salvando…");
+      const { error } = await sb.from("caixa_lancamentos").update({ categoria: nova }).eq("id", l.id);
+      if (error) return falhou(error);
+      sinc("Salvo", "ok"); return toast(`Categoria trocada para ${CATS[nova].nome}`);
+    }
     const mesmos = st.lancamentos.filter((x) => (x.chave || chaveDe(x.descricao)) === chave && (x.valor > 0) === (l.valor > 0));
     mesmos.forEach((x) => (x.categoria = nova));
     st.regras[chave] = nova;
@@ -314,7 +321,7 @@
     toast(mesmos.length > 1 ? `${mesmos.length} lançamentos de "${chave}" agora são ${CATS[nova].nome}` : `Categoria trocada para ${CATS[nova].nome}`);
   });
 
-  function render(r) {
+  let render = function (r) {
     r = r || NC.calcular();
     const m = st.mes;
     const doMes = st.lancamentos.filter((l) => l.data.slice(0, 7) === m);
@@ -362,6 +369,60 @@
     $("g-lista").innerHTML = lista.map((l) => linhaLanc(l, 0, false)).join("");
   }
 
-  window.NC_gastos = { render };
+  // ---------------- lançar gasto à mão ----------------
+  const RAPIDAS = ["comida", "lazer", "transporte", "faculdade", "contas", "compras", "saude", "moradia", "assinaturas", "outros"];
+  let gmCat = "comida", gmQuem = "ambos";
+  const nomes = () => ({ A: st.config.nome_a || "Pessoa 1", B: st.config.nome_b || "Pessoa 2", ambos: "Os dois" });
+  function quemNome(q) { return nomes()[q] || "Os dois"; }
+  const hojeISO = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  function desenharChips() {
+    $("gm-cats").innerHTML = RAPIDAS.map((k) => `<button type="button" role="radio" aria-checked="${k === gmCat}" data-gcat="${k}" style="--cat:${CATS[k].cor}"><i></i>${CATS[k].nome}</button>`).join("");
+  }
+  desenharChips();
+  $("gm-data").value = hojeISO();
+  $("gm-cats").addEventListener("click", (e) => { const b = e.target.closest("[data-gcat]"); if (!b) return; gmCat = b.dataset.gcat; desenharChips(); });
+  $("gm-quem").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-quem]"); if (!b) return; gmQuem = b.dataset.quem;
+    $("gm-quem").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  });
+  $("form-gasto").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const valor = NC.parse($("gm-valor").value);
+    const data = $("gm-data").value || hojeISO();
+    if (!(valor > 0)) return (($("gm-msg").textContent = "Digite quanto foi gasto, por exemplo 20,00."), ($("gm-msg").hidden = false));
+    $("gm-msg").hidden = true;
+    const descricao = $("gm-desc").value.trim() || CATS[gmCat].nome;
+    const id = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + Math.random();
+    const linha = { casal_id: st.casal, data, descricao: descricao.slice(0, 200), valor: -Math.round(valor * 100) / 100, categoria: gmCat, chave: chaveDe(descricao), origem: "manual", quem: gmQuem, hash: "manual|" + id };
+    $("gm-salvar").disabled = true; sinc("Salvando…");
+    const { data: salvo, error } = await sb.from("caixa_lancamentos").insert(linha).select().single();
+    $("gm-salvar").disabled = false;
+    if (error) return falhou(error);
+    st.lancamentos.unshift({ ...salvo, valor: Number(salvo.valor) });
+    sinc("Salvo", "ok");
+    st.mes = data.slice(0, 7);
+    $("gm-valor").value = ""; $("gm-desc").value = "";
+    NC.render();
+    toast(`${fmt(valor)} em ${CATS[gmCat].nome} salvo`);
+  });
+  $("g-lista").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-del]"); if (!b) return;
+    if (!b.dataset.confirmar) { b.dataset.confirmar = "1"; b.textContent = "confirmar exclusão"; b.classList.add("confirmar"); setTimeout(() => { if (b.isConnected) { b.dataset.confirmar = ""; b.textContent = "excluir"; b.classList.remove("confirmar"); } }, 4000); return; }
+    const id = b.dataset.del;
+    const { error } = await sb.from("caixa_lancamentos").delete().eq("id", id);
+    if (error) return falhou(error);
+    st.lancamentos = st.lancamentos.filter((x) => x.id !== id);
+    NC.render(); toast("Lançamento excluído");
+  });
+
+  const renderOriginal = render;
+  render = function (r) {
+    const n = nomes();
+    $("gm-quem").querySelector('[data-quem="A"]').textContent = n.A;
+    $("gm-quem").querySelector('[data-quem="B"]').textContent = n.B;
+    renderOriginal(r);
+  };
+
+  window.NC_gastos = { render: (r) => render(r) };
   render();
 })();

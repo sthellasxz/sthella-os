@@ -371,7 +371,7 @@
   }
   document.addEventListener("click", (e) => {
     const ir = e.target.closest("[data-ir]");
-    if (ir) return irPara(ir.dataset.ir);
+    if (ir) { irPara(ir.dataset.ir); if (ir.dataset.foco) setTimeout(() => $(ir.dataset.foco).focus(), 80); return; }
     const pagar = e.target.closest("[data-pagar]");
     if (pagar) {
       const c = st.contas.find((x) => x.id === pagar.dataset.pagar);

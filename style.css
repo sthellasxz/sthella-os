@@ -422,3 +422,20 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .comp.bom { background: var(--guardar-suave); }
 .comp.ruim { background: color-mix(in srgb, var(--alerta) 14%, transparent); }
 .nav button span { white-space: nowrap; }
+
+/* ---------- lançar gasto ---------- */
+.atalho-gasto { margin-top: -4px; }
+.valor-grande { display: flex; align-items: baseline; gap: 8px; border-bottom: 2px solid var(--linha); padding: 4px 2px 8px; }
+.valor-grande:focus-within { border-color: var(--primaria); }
+.valor-grande em { font-style: normal; font-family: var(--f-titulo); font-weight: 600; font-size: 1.4rem; color: var(--suave); }
+.valor-grande input { border: 0; background: transparent; outline: none; width: 100%; min-width: 0; font-family: var(--f-titulo); font-weight: 800; font-size: 2.4rem; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.cat-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cat-chips button {
+  display: inline-flex; align-items: center; gap: 7px; border: 1.5px solid var(--linha); background: var(--superficie);
+  border-radius: 999px; padding: 8px 13px; font-size: .86rem; font-weight: 600; cursor: pointer; min-height: 40px;
+}
+.cat-chips button i { width: 10px; height: 10px; border-radius: 50%; background: var(--cat); }
+.cat-chips button[aria-checked="true"] { border-color: var(--cat); background: color-mix(in srgb, var(--cat) 16%, var(--superficie)); }
+.del-lanc { align-self: flex-start; border: 0; background: none; color: var(--suave); font-size: .76rem; text-decoration: underline; cursor: pointer; padding: 2px 0; position: absolute; right: 0; bottom: -2px; }
+.del-lanc.confirmar { color: var(--perigo); font-weight: 700; }
+#g-lista .lanc { padding-bottom: 22px; }
