@@ -548,3 +548,7 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .saldo-card.vazio { border-style: dashed; }
 .saldo-acao { align-self: flex-start; font-size: .82rem; font-weight: 700; color: var(--primaria); border: 1.5px solid var(--primaria); border-radius: 999px; padding: 5px 10px; }
 @media (max-width: 370px) { .saldo-cards { grid-template-columns: 1fr; } }
+
+.conta-linha .h-info { order: 10; opacity: .85; font-size: .85rem; border-top: 1px dashed rgba(255,255,255,.25); margin-top: 4px; padding-top: 8px; }
+.conta-linha .h-info b { color: #FDBA74; }
+.saldo-card .fim { border-top: 0; padding-top: 0; }

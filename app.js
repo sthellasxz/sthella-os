@@ -203,6 +203,11 @@
     const { error } = await sb.from("caixa_meses").upsert({ casal_id: st.casal, mes, recebeu_a: !!r.A, recebeu_b: !!r.B });
     error ? falhou(error) : sinc("Salvo", "ok");
   }
+  async function salvarBanco(m) {
+    const b = st.banco[m] || {};
+    const { error } = await sb.from("caixa_meses").upsert({ casal_id: st.casal, mes: m, conta_a: b.A ?? null, conta_b: b.B ?? null, conta_em: b.em || new Date().toISOString() });
+    if (error) falhou(error);
+  }
   async function salvarPagos(conta) {
     sinc("Salvando…");
     const { error } = await sb.from("caixa_contas").update({ pagos: conta.pagos }).eq("id", conta.id);
@@ -267,9 +272,10 @@
     const naoPagas = contas - pago;
     const modoBanco = st.visao !== "previsto" && (bancoA != null || bancoB != null);
     const agoraA = bancoA != null ? bancoA : rec.A ? rA : 0, agoraB = bancoB != null ? bancoB : rec.B ? rB : 0;
-    if (modoBanco) { disponivel = agoraA + agoraB; sobra = disponivel - naoPagas; }
+    // com saldo informado, a sobra é o que tem na conta; a conta só sai do saldo quando é marcada como paga
+    if (modoBanco) { disponivel = agoraA + agoraB; sobra = disponivel; }
     const base = Math.max(0, sobra);
-    const contasBarra = modoBanco ? naoPagas : contas;
+    const contasBarra = modoBanco ? 0 : contas;
     const guardar = base * cfg.pct_guardar / 100;
     const lazer = base * cfg.pct_lazer / 100;
     const folga = Math.max(0, base - guardar - lazer);
@@ -334,11 +340,11 @@
       $("h-banco-a-lbl").textContent = r.bancoA != null ? `Na conta de ${n.A} agora` : `${n.A}: salário recebido (sem saldo informado)`;
       $("h-banco-b-lbl").textContent = r.bancoB != null ? `Na conta de ${n.B} agora` : `${n.B}: salário recebido (sem saldo informado)`;
       $("h-banco-a").textContent = fmt(r.agoraA); $("h-banco-b").textContent = fmt(r.agoraB);
-      $("h-naopagas").textContent = fmt(r.naoPagas);
+      $("h-naopagas").textContent = r.naoPagas > 0 ? fmt(r.naoPagas) : "tudo pago";
     }
     $("h-exp").textContent = r.renda === 0
       ? "Comece pela aba Renda: coloque quanto cada um ganha por mês."
-      : r.modoBanco ? "Saldo que vocês informaram nas contas, menos as contas do mês que ainda faltam pagar." : agora ? "Só conta o salário que já caiu, menos todas as contas do mês." : "Quanto vai sobrar no mês quando todos os salários caírem.";
+      : r.modoBanco ? "É o que tem nas contas agora. Cada conta sai do saldo quando vocês marcam como paga." : agora ? "Só conta o salário que já caiu, menos todas as contas do mês." : "Quanto vai sobrar no mês quando todos os salários caírem.";
 
     const tot = Math.max(r.disponivel, r.contasBarra) || 1;
     const partes = [
@@ -426,14 +432,12 @@
           <span class="saldo-acao">Informar saldo</span>
           <dl><div><dt>Contas a pagar</dt><dd class="alerta">${fmt(falta)}</dd></div></dl></button>`;
       }
-      const fica = banco - falta;
       return `<button type="button" class="saldo-card ${k}" data-banco="${k}"><h3>${esc(n[k])}</h3>
         <dl>
-          <div><dt>Tem na conta</dt><dd>${fmt(banco)}</dd></div>
-          <div><dt>− Contas a pagar</dt><dd class="alerta">${fmt(falta)}</dd></div>
-          <div class="fim"><dt>= Fica livre</dt><dd class="${fica < 0 ? "neg" : "ok"}">${fmt(fica)}</dd></div>
+          <div class="fim"><dt>Sobra (tem na conta)</dt><dd class="${banco < 0 ? "neg" : "ok"}">${fmt(banco)}</dd></div>
+          <div><dt>Ainda falta pagar</dt><dd class="${falta > 0 ? "alerta" : "ok"}">${falta > 0 ? fmt(falta) : "Nada, tudo pago"}</dd></div>
         </dl>
-        <small class="muted">${bkm0.em ? "Atualizado em " + new Date(bkm0.em).toLocaleDateString("pt-BR") : ""}</small></button>`;
+        <small class="muted">${falta > 0 ? "Sai do saldo quando marcar a conta como paga. " : ""}${bkm0.em ? "Atualizado em " + new Date(bkm0.em).toLocaleDateString("pt-BR") : ""}</small></button>`;
     }).join("");
 
     // salário recebido no mês
@@ -503,10 +507,24 @@
     if (pagar) {
       const c = st.contas.find((x) => x.id === pagar.dataset.pagar);
       if (!c || !parcelaNoMes(c, st.mes)) return;
-      const novo = !c.pagos[st.mes];
-      c.pagos = { ...c.pagos }; if (novo) c.pagos[st.mes] = true; else delete c.pagos[st.mes];
+      const m = st.mes, novo = !c.pagos[m], antes = c.pagos[m];
+      c.pagos = { ...c.pagos };
+      // tira (ou devolve) o valor do saldo de quem paga, se o saldo foi informado
+      const bk = { ...(st.banco[m] || {}) };
+      let mexeu = false, desc = { A: 0, B: 0 };
+      if (novo) {
+        const r0 = calcular(), v = c.valor_parcela;
+        const parte = c.quem === "A" ? { A: v, B: 0 } : c.quem === "B" ? { A: 0, B: v } : { A: v * r0.propA, B: v * (1 - r0.propA) };
+        for (const k of ["A", "B"]) if (bk[k] != null && parte[k]) { bk[k] = Math.round((bk[k] - parte[k]) * 100) / 100; desc[k] = Math.round(parte[k] * 100) / 100; mexeu = true; }
+        c.pagos[m] = mexeu ? { A: desc.A, B: desc.B } : true;
+      } else {
+        if (antes && typeof antes === "object") for (const k of ["A", "B"]) if (bk[k] != null && antes[k]) { bk[k] = Math.round((bk[k] + antes[k]) * 100) / 100; mexeu = true; }
+        delete c.pagos[m];
+      }
+      if (mexeu) { bk.em = new Date().toISOString(); st.banco[m] = bk; salvarBanco(m); }
       render(); salvarPagos(c);
-      toast(novo ? `${c.nome}: ${nomeMes(st.mes, true)} marcado como pago` : `${c.nome}: pagamento desmarcado`);
+      const quemNm = c.quem === "A" ? nomes().A : c.quem === "B" ? nomes().B : "dos dois";
+      toast(novo ? `${c.nome} pago${mexeu ? `: ${fmt(c.valor_parcela)} saiu do saldo ${c.quem === "ambos" ? "dos dois" : "de " + quemNm}` : ""}` : `${c.nome}: pagamento desmarcado${mexeu ? ", valor voltou para o saldo" : ""}`);
       return;
     }
     const bc = e.target.closest("[data-banco]");
