@@ -532,3 +532,19 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .ext-card dl div { flex-direction: column; gap: 0; }
 .ext-card dt { font-size: .76rem; }
 .ext-card dd { font-size: .98rem; }
+
+/* ---------- saldo de cada um ---------- */
+.saldo-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.saldo-card { display: flex; flex-direction: column; gap: 8px; text-align: left; border: 1px solid var(--linha); background: var(--superficie); border-radius: 14px; padding: 12px; cursor: pointer; min-width: 0; }
+.saldo-card.A { border-top: 4px solid var(--p-a); } .saldo-card.B { border-top: 4px solid var(--p-b); }
+.saldo-card h3 { font-size: 1rem; overflow-wrap: anywhere; }
+.saldo-card dl { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.saldo-card dl div { display: flex; flex-direction: column; }
+.saldo-card dt { font-size: .76rem; color: var(--suave); }
+.saldo-card dd { margin: 0; font-weight: 700; font-size: 1.02rem; font-variant-numeric: tabular-nums; }
+.saldo-card dd.alerta { color: var(--alerta); } .saldo-card dd.ok { color: var(--ok); } .saldo-card dd.neg { color: var(--perigo); }
+.saldo-card .fim { border-top: 1px dashed var(--linha); padding-top: 6px; }
+.saldo-card .fim dd { font-family: var(--f-titulo); font-size: 1.25rem; }
+.saldo-card.vazio { border-style: dashed; }
+.saldo-acao { align-self: flex-start; font-size: .82rem; font-weight: 700; color: var(--primaria); border: 1.5px solid var(--primaria); border-radius: 999px; padding: 5px 10px; }
+@media (max-width: 370px) { .saldo-cards { grid-template-columns: 1fr; } }

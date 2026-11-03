@@ -231,11 +231,14 @@
     const propA = renda > 0 ? rA / renda : 0.5;
     const saldo = st.meses[m] || 0;
     const ativas = st.contas.filter((c) => parcelaNoMes(c, m));
-    let contas = 0, pago = 0, contaA = 0, contaB = 0;
+    let contas = 0, pago = 0, contaA = 0, contaB = 0, naoPagasA = 0, naoPagasB = 0;
     for (const c of ativas) {
       const v = c.valor_parcela;
       contas += v;
       if (c.pagos[m]) pago += v;
+      else if (c.quem === "A") naoPagasA += v;
+      else if (c.quem === "B") naoPagasB += v;
+      else { naoPagasA += v * propA; naoPagasB += v * (1 - propA); }
       if (c.quem === "A") contaA += v;
       else if (c.quem === "B") contaB += v;
       else { contaA += v * propA; contaB += v * (1 - propA); }
@@ -270,7 +273,7 @@
     const guardar = base * cfg.pct_guardar / 100;
     const lazer = base * cfg.pct_lazer / 100;
     const folga = Math.max(0, base - guardar - lazer);
-    return { modoBanco, bancoA, bancoB, agoraA, agoraB, naoPagas, contasBarra, extras, saldoAgora, extraAgora, saldoUsado, extraUsado, rA, rB, renda, rendaRecebida, rendaUsada, pendente, propA, saldo, extra, ativas, contas, pago, contaA, contaB, disponivel, sobra, guardar, lazer, folga };
+    return { naoPagasA, naoPagasB, modoBanco, bancoA, bancoB, agoraA, agoraB, naoPagas, contasBarra, extras, saldoAgora, extraAgora, saldoUsado, extraUsado, rA, rB, renda, rendaRecebida, rendaUsada, pendente, propA, saldo, extra, ativas, contas, pago, contaA, contaB, disponivel, sobra, guardar, lazer, folga };
   }
 
   // ---------------- render ----------------
@@ -413,6 +416,26 @@
     // casal
     $("codigo-casal").textContent = st.codigo || "——————";
     $("membros-txt").textContent = st.membros >= 2 ? "Vocês dois já estão neste caixa." : "Por enquanto só você está neste caixa.";
+    // saldo de cada um, separado
+    const bkm0 = st.banco[m] || {};
+    $("saldo-cards").innerHTML = ["A", "B"].map((k) => {
+      const banco = k === "A" ? r.bancoA : r.bancoB, falta = k === "A" ? r.naoPagasA : r.naoPagasB;
+      if (banco == null) {
+        return `<button type="button" class="saldo-card ${k} vazio" data-banco="${k}"><h3>${esc(n[k])}</h3>
+          <p class="muted pequeno">Saldo de ${nomeMes(m)} não informado</p>
+          <span class="saldo-acao">Informar saldo</span>
+          <dl><div><dt>Contas a pagar</dt><dd class="alerta">${fmt(falta)}</dd></div></dl></button>`;
+      }
+      const fica = banco - falta;
+      return `<button type="button" class="saldo-card ${k}" data-banco="${k}"><h3>${esc(n[k])}</h3>
+        <dl>
+          <div><dt>Tem na conta</dt><dd>${fmt(banco)}</dd></div>
+          <div><dt>− Contas a pagar</dt><dd class="alerta">${fmt(falta)}</dd></div>
+          <div class="fim"><dt>= Fica livre</dt><dd class="${fica < 0 ? "neg" : "ok"}">${fmt(fica)}</dd></div>
+        </dl>
+        <small class="muted">${bkm0.em ? "Atualizado em " + new Date(bkm0.em).toLocaleDateString("pt-BR") : ""}</small></button>`;
+    }).join("");
+
     // salário recebido no mês
     const rec = st.recebido[m] || {};
     document.querySelectorAll("[data-recebeu]").forEach((b) => {
@@ -486,6 +509,8 @@
       toast(novo ? `${c.nome}: ${nomeMes(st.mes, true)} marcado como pago` : `${c.nome}: pagamento desmarcado`);
       return;
     }
+    const bc = e.target.closest("[data-banco]");
+    if (bc) { irPara("renda"); setTimeout(() => $("banco-" + bc.dataset.banco.toLowerCase()).focus(), 80); return; }
     const vs = e.target.closest("[data-visao]");
     if (vs) { st.visao = vs.dataset.visao; try { localStorage.setItem("nc-visao", st.visao); } catch {} render(); return; }
     const rcb = e.target.closest("[data-recebeu]");
