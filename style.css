@@ -487,3 +487,23 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .visao button { flex: 1; border: 0; background: transparent; color: inherit; opacity: .75; border-radius: 9px; padding: 9px 6px; font-weight: 700; font-size: .85rem; cursor: pointer; }
 .visao button[aria-pressed="true"] { background: var(--topo-tinta); color: var(--topo); opacity: 1; }
 .hero-pendente { margin-top: 10px; background: rgba(242, 166, 73, .18); border-radius: 12px; padding: 10px 12px; font-size: .86rem; line-height: 1.4; }
+
+/* ---------- quanto ainda sobra ---------- */
+.resto-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.resto-item {
+  width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; text-align: left;
+  border: 1.5px solid var(--linha); background: var(--superficie); border-radius: 14px; padding: 12px; cursor: pointer;
+}
+.resto-txt { display: flex; flex-direction: column; min-width: 0; }
+.resto-txt b { overflow-wrap: anywhere; }
+.resto-txt small { color: var(--suave); font-size: .8rem; }
+.resto-st { font-size: .82rem; font-weight: 700; color: var(--ok); white-space: nowrap; }
+.resto-item.parte .resto-st { color: var(--c-lazer); }
+.resto-item.acabou .resto-st { color: var(--suave); }
+.resto-item.acabou .resto-txt b { text-decoration: line-through; text-decoration-color: var(--suave); }
+.resto-item.acabou { background: var(--afundado); }
+.resto-trilho { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--afundado); overflow: hidden; }
+.resto-trilho i { display: block; height: 100%; background: var(--ok); }
+.resto-item.parte .resto-trilho i { background: var(--c-lazer); }
+.resto-info { display: flex; flex-direction: column; gap: 2px; background: var(--superficie); border: 1px solid var(--linha); border-radius: 12px; padding: 12px; }
+.resto-btn { width: 100%; font-size: .88rem; }

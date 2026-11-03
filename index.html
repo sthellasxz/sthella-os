@@ -110,8 +110,8 @@
 
         <div class="conta-linha">
           <div><span id="h-renda-lbl">Renda dos dois</span><b id="h-renda">R$ 0,00</b></div>
-          <div><span>+ Já tinha na conta</span><b id="h-saldo">R$ 0,00</b></div>
-          <div id="h-extra-linha" hidden><span>+ Dinheiro extra (Pix, freela)</span><b id="h-extra">R$ 0,00</b></div>
+          <div><span id="h-saldo-lbl">+ Já tinha na conta</span><b id="h-saldo">R$ 0,00</b></div>
+          <div id="h-extra-linha" hidden><span id="h-extra-lbl">+ Dinheiro extra (Pix, freela)</span><b id="h-extra">R$ 0,00</b></div>
           <div><span>− Contas do mês</span><b id="h-contas">R$ 0,00</b></div>
           <div class="total"><span>= Sobra</span><b id="h-sobra2">R$ 0,00</b></div>
         </div>
@@ -141,6 +141,12 @@
           </button>
         </div>
         <div class="sal-resumo"><span>Já entrou <b id="sal-entrou" class="ok">R$ 0,00</b></span><span>Falta entrar <b id="sal-falta" class="alerta">R$ 0,00</b></span></div>
+      </div>
+
+      <div class="bloco outros-din" id="outros-din" hidden>
+        <div class="bloco-cab"><h2>Outro dinheiro que entrou</h2><span class="muted pequeno">quanto ainda sobra de cada um</span></div>
+        <ul class="resto-lista" id="resto-lista"></ul>
+        <p class="nota">Se um dinheiro já foi gasto, toque nele e marque quanto ainda sobra (ou "Já acabou"). A sobra de agora passa a contar só o que ainda tem.</p>
       </div>
 
       <div class="atalhos">
@@ -383,6 +389,16 @@
           <div class="dinheiro"><em>R$</em><input id="saldo" inputmode="decimal" placeholder="0,00"></div>
           <p class="ajuda">Não inclua o salário deste mês, ele já entra pela renda acima. Esse valor é só deste mês; cada mês tem o seu.</p>
         </div>
+        <div class="grade2">
+          <div class="campo">
+            <label for="saldo-data">Quando entrou</label>
+            <input id="saldo-data" type="date">
+          </div>
+          <div class="campo">
+            <span class="label">Quanto ainda tem disso</span>
+            <button type="button" class="btn resto-btn" id="saldo-resto-btn" data-resto="saldo">Ainda tem tudo</button>
+          </div>
+        </div>
       </div>
 
       <div class="bloco">
@@ -433,7 +449,7 @@
         <div class="bloco-cab"><h2>Conta</h2></div>
         <p class="muted pequeno" id="email-logado"></p>
         <button class="btn" id="btn-sair">Sair</button>
-        <p class="pequeno muted">Versão do app: 9 (sobra só com salário recebido)</p>
+        <p class="pequeno muted">Versão do app: 10 (quanto ainda sobra de cada dinheiro)</p>
       </div>
     </section>
   </main>
@@ -445,6 +461,32 @@
     <button data-ir="renda"><svg viewBox="0 0 24 24"><path d="M3 7h18v10H3zM12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM6 7V5h12v2"/></svg><span>Renda</span></button>
     <button data-ir="casal"><svg viewBox="0 0 24 24"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3 3-5 6-5s6 2 6 5M14 15.5c.6-.3 1.3-.5 2-.5 3 0 6 2 6 5"/></svg><span>Nós dois</span></button>
   </nav>
+</div>
+
+<!-- ============ FOLHA: QUANTO AINDA SOBRA ============ -->
+<div class="folha-fundo" id="resto-fundo" hidden></div>
+<div class="folha" id="resto-folha" role="dialog" aria-modal="true" aria-labelledby="resto-titulo" hidden>
+  <div class="folha-pega" aria-hidden="true"></div>
+  <div class="folha-cab">
+    <h2 id="resto-titulo">Quanto ainda sobra?</h2>
+    <button class="fechar" id="resto-fechar" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <form class="form" id="resto-form" novalidate>
+    <div class="resto-info">
+      <b id="resto-nome">—</b>
+      <span class="muted pequeno" id="resto-sub">—</span>
+    </div>
+    <div class="campo">
+      <label for="resto-valor">Quanto ainda sobra desse dinheiro</label>
+      <div class="dinheiro"><em>R$</em><input id="resto-valor" inputmode="decimal" placeholder="0,00"></div>
+      <p class="ajuda" id="resto-ajuda"></p>
+    </div>
+    <div class="grade2">
+      <button type="button" class="btn perigo" id="resto-acabou">Já acabou</button>
+      <button type="button" class="btn" id="resto-tudo">Ainda tenho tudo</button>
+    </div>
+    <button class="btn primario largo" type="submit">Salvar</button>
+  </form>
 </div>
 
 <!-- ============ FOLHA: NOVA / EDITAR CONTA ============ -->

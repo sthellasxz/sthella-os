@@ -39,7 +39,7 @@
     user: null, casal: null, codigo: "", membros: 0,
     mes: HOJE, aba: "inicio", visao: (() => { try { return localStorage.getItem("nc-visao") || "agora"; } catch { return "agora"; } })(), filtro: "todas",
     config: { nome_a: "Eu", nome_b: "João", renda_a: 0, renda_b: 0, pct_guardar: 40, pct_lazer: 30 },
-    meses: {}, recebido: {}, contas: [], lancamentos: [], regras: {},
+    meses: {}, recebido: {}, saldoInfo: {}, contas: [], lancamentos: [], regras: {},
   };
 
   // ---------------- telas ----------------
@@ -143,6 +143,7 @@
     if (erro) { sinc("Sem conexão — mostrando o que já tinha", "erro"); return; }
     if (cfg.data) st.config = cfg.data;
     st.meses = Object.fromEntries((meses.data || []).map((m) => [m.mes, Number(m.saldo)]));
+    st.saldoInfo = Object.fromEntries((meses.data || []).map((m) => [m.mes, { restante: m.saldo_restante == null ? null : Number(m.saldo_restante), data: m.saldo_data || "" }]));
     st.recebido = Object.fromEntries((meses.data || []).map((m) => [m.mes, { A: !!m.recebeu_a, B: !!m.recebeu_b }]));
     st.contas = (contas.data || []).map(normConta);
     st.codigo = casal.data ? casal.data.codigo : "";
@@ -238,19 +239,27 @@
     }
     // dinheiro extra do mês (trabalho extra, reembolso, presente); salário não entra porque já está na renda
     const EXTRA = ["extra", "reembolso", "presente"];
-    const extra = (st.lancamentos || []).filter((l) => l.valor > 0 && l.data.slice(0, 7) === m && EXTRA.includes(l.categoria)).reduce((s, l) => s + l.valor, 0);
+    const extras = (st.lancamentos || []).filter((l) => l.valor > 0 && l.data.slice(0, 7) === m && EXTRA.includes(l.categoria));
+    const extra = extras.reduce((s, l) => s + l.valor, 0);
+    // quanto ainda sobra de cada dinheiro (null = ainda tem tudo)
+    const sobraDe = (total, resto) => (resto == null ? total : Math.min(Number(resto), total));
+    const extraAgora = extras.reduce((s, l) => s + sobraDe(l.valor, l.restante), 0);
+    const saldoAgora = sobraDe(saldo, (st.saldoInfo[m] || {}).restante);
     // salário só conta quando já foi marcado como recebido (na visão "Dinheiro de agora")
     const rec = st.recebido[m] || {};
     const rendaRecebida = (rec.A ? rA : 0) + (rec.B ? rB : 0);
     const pendente = renda - rendaRecebida;
     const rendaUsada = st.visao === "previsto" ? renda : rendaRecebida;
-    const disponivel = rendaUsada + saldo + extra;
+    // dinheiro que já acabou não volta: vale para as duas visões
+    const saldoUsado = saldoAgora;
+    const extraUsado = extraAgora;
+    const disponivel = rendaUsada + saldoUsado + extraUsado;
     const sobra = disponivel - contas;
     const base = Math.max(0, sobra);
     const guardar = base * cfg.pct_guardar / 100;
     const lazer = base * cfg.pct_lazer / 100;
     const folga = Math.max(0, base - guardar - lazer);
-    return { rA, rB, renda, rendaRecebida, rendaUsada, pendente, propA, saldo, extra, ativas, contas, pago, contaA, contaB, disponivel, sobra, guardar, lazer, folga };
+    return { extras, saldoAgora, extraAgora, saldoUsado, extraUsado, rA, rB, renda, rendaRecebida, rendaUsada, pendente, propA, saldo, extra, ativas, contas, pago, contaA, contaB, disponivel, sobra, guardar, lazer, folga };
   }
 
   // ---------------- render ----------------
@@ -277,9 +286,32 @@
         ? `Ainda falta cair o salário de ${faltam} (${fmt(r.pendente)}). Quando cair, a sobra vai para ${fmt(r.sobra + r.pendente)}. Marque como recebido no bloco "Salário" abaixo.`
         : `Previsão contando o salário de ${faltam} (${fmt(r.pendente)}), que ainda não caiu.`;
     }
-    $("h-saldo").textContent = fmt(r.saldo);
-    $("h-extra").textContent = fmt(r.extra);
+    $("h-saldo").textContent = fmt(r.saldoUsado);
+    $("h-saldo-lbl").textContent = r.saldoUsado !== r.saldo ? `+ Ainda tem do que já estava na conta (entrou ${fmt(r.saldo)})` : "+ Já tinha na conta";
+    $("h-extra").textContent = fmt(r.extraUsado);
+    $("h-extra-lbl").textContent = r.extraUsado !== r.extra ? `+ Ainda tem do dinheiro extra (entrou ${fmt(r.extra)})` : "+ Dinheiro extra (Pix, freela)";
     $("h-extra-linha").hidden = !r.extra;
+
+    // outro dinheiro que entrou e quanto ainda sobra
+    const itensResto = [];
+    if (r.saldo > 0) itensResto.push({ tipo: "saldo", id: "saldo", nome: "Já estava na conta", data: (st.saldoInfo[m] || {}).data, valor: r.saldo, restante: (st.saldoInfo[m] || {}).restante });
+    r.extras.forEach((l) => itensResto.push({ tipo: "lanc", id: l.id, nome: l.descricao, data: l.data, valor: l.valor, restante: l.restante == null ? null : Number(l.restante) }));
+    $("outros-din").hidden = itensResto.length === 0;
+    $("resto-lista").innerHTML = itensResto.map((it) => {
+      const tem = it.restante == null ? it.valor : Math.min(it.restante, it.valor);
+      const st0 = tem <= 0 ? ["acabou", "Já acabou"] : tem >= it.valor ? ["tudo", "Ainda tem tudo"] : ["parte", `Ainda tem ${fmt(tem)}`];
+      const dt = it.data ? it.data.split("-").reverse().slice(0, 2).join("/") : "";
+      return `<li><button type="button" class="resto-item ${st0[0]}" data-resto="${it.tipo === "saldo" ? "saldo" : it.id}">
+        <span class="resto-txt"><b>${esc(it.nome)}</b><small>${dt ? "Entrou em " + dt + " · " : ""}${fmt(it.valor)}</small></span>
+        <span class="resto-st">${st0[1]}</span>
+        <span class="resto-trilho"><i style="width:${(Math.max(0, tem) / it.valor * 100).toFixed(1)}%"></i></span>
+      </button></li>`;
+    }).join("");
+    const infoS = st.saldoInfo[m] || {};
+    setVal("saldo-data", infoS.data || "");
+    const temS = infoS.restante == null ? r.saldo : Math.min(infoS.restante, r.saldo);
+    $("saldo-resto-btn").textContent = r.saldo <= 0 ? "—" : temS <= 0 ? "Já acabou" : temS >= r.saldo ? "Ainda tem tudo" : `Ainda tem ${fmt(temS)}`;
+    $("saldo-resto-btn").disabled = r.saldo <= 0;
     $("h-contas").textContent = fmt(r.contas);
     $("h-exp").textContent = r.renda === 0
       ? "Comece pela aba Renda: coloque quanto cada um ganha por mês."
@@ -456,6 +488,59 @@
   ligarCfg("renda-a", "renda_a", parse);
   ligarCfg("renda-b", "renda_b", parse);
   ["renda-a", "renda-b", "saldo"].forEach((id) => $(id).addEventListener("blur", () => { $(id).value = ""; render(); }));
+  $("saldo-data").addEventListener("change", async (e) => {
+    const m = st.mes; st.saldoInfo[m] = { ...(st.saldoInfo[m] || { restante: null }), data: e.target.value };
+    sinc("Salvando…");
+    const { error } = await sb.from("caixa_meses").upsert({ casal_id: st.casal, mes: m, saldo_data: e.target.value || null });
+    error ? falhou(error) : sinc("Salvo", "ok");
+    render();
+  });
+
+  // ---- folha "quanto ainda sobra" ----
+  let restoAlvo = null;
+  function abrirResto(alvo) {
+    const m = st.mes, r = calcular();
+    if (alvo === "saldo") {
+      const info = st.saldoInfo[m] || {};
+      restoAlvo = { tipo: "saldo", valor: r.saldo, restante: info.restante };
+      $("resto-nome").textContent = "Dinheiro que já estava na conta";
+      $("resto-sub").textContent = `Entrou ${fmt(r.saldo)}${info.data ? " em " + info.data.split("-").reverse().join("/") : ""}`;
+    } else {
+      const l = st.lancamentos.find((x) => x.id === alvo); if (!l) return;
+      restoAlvo = { tipo: "lanc", id: l.id, valor: l.valor, restante: l.restante == null ? null : Number(l.restante) };
+      $("resto-nome").textContent = l.descricao;
+      $("resto-sub").textContent = `Entrou ${fmt(l.valor)} em ${l.data.split("-").reverse().join("/")}`;
+    }
+    const tem = restoAlvo.restante == null ? restoAlvo.valor : Math.min(restoAlvo.restante, restoAlvo.valor);
+    $("resto-valor").value = paraCampo(tem) || "0,00";
+    $("resto-ajuda").textContent = `Por exemplo: entrou ${fmt(restoAlvo.valor)} e você já gastou tudo, então sobra R$ 0,00.`;
+    $("resto-folha").hidden = false; $("resto-fundo").hidden = false; document.body.style.overflow = "hidden";
+  }
+  function fecharResto() { $("resto-folha").hidden = true; $("resto-fundo").hidden = true; document.body.style.overflow = ""; }
+  $("resto-fechar").onclick = fecharResto; $("resto-fundo").onclick = fecharResto;
+  async function salvarResto(valor) {
+    if (!restoAlvo) return;
+    const v = valor == null ? null : Math.max(0, Math.min(Math.round(valor * 100) / 100, restoAlvo.valor));
+    const restante = v != null && v >= restoAlvo.valor ? null : v;
+    const m = st.mes; sinc("Salvando…");
+    let error;
+    if (restoAlvo.tipo === "saldo") {
+      st.saldoInfo[m] = { ...(st.saldoInfo[m] || { data: "" }), restante };
+      ({ error } = await sb.from("caixa_meses").upsert({ casal_id: st.casal, mes: m, saldo_restante: restante }));
+    } else {
+      const l = st.lancamentos.find((x) => x.id === restoAlvo.id); if (l) l.restante = restante;
+      ({ error } = await sb.from("caixa_lancamentos").update({ restante }).eq("id", restoAlvo.id));
+    }
+    fecharResto(); render();
+    if (error) return falhou(error);
+    sinc("Salvo", "ok");
+    toast(restante === 0 ? "Marcado: esse dinheiro já acabou" : restante == null ? "Marcado: ainda tem tudo" : `Marcado: ainda sobra ${fmt(restante)}`);
+  }
+  $("resto-acabou").onclick = () => salvarResto(0);
+  $("resto-tudo").onclick = () => salvarResto(null);
+  $("resto-form").addEventListener("submit", (e) => { e.preventDefault(); salvarResto(parse($("resto-valor").value)); });
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-resto]"); if (b && !b.disabled) abrirResto(b.dataset.resto); });
+
   $("saldo").addEventListener("input", (e) => { st.meses[st.mes] = parse(e.target.value); render(); salvarSaldo(st.mes); });
   function setPct(g, l) { st.config.pct_guardar = g; st.config.pct_lazer = l; render(); salvarConfig(); }
   $("pct-guardar").addEventListener("input", (e) => { const g = +e.target.value; setPct(g, Math.min(st.config.pct_lazer, 100 - g)); });
