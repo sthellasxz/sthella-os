@@ -449,3 +449,6 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .sub-titulo { font-size: .95rem; margin: 6px 0 10px; color: var(--suave); }
 .atalhos .btn { padding: 12px 10px; font-size: .92rem; white-space: nowrap; gap: 6px; }
 .atalhos .btn svg { width: 18px; height: 18px; flex: none; }
+
+/* esconde o selo "Powered by Netlify" que a hospedagem insere por cima do app */
+#nl-badge-frame, iframe[title="Powered by Netlify"] { display: none !important; visibility: hidden !important; pointer-events: none !important; }
