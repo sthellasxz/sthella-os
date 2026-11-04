@@ -44,7 +44,7 @@
 
   // ---------------- telas ----------------
   function mostrar(tela) {
-    for (const id of ["tela-carregando", "tela-login", "tela-casal", "app"]) $(id).hidden = id !== tela;
+    for (const id of ["tela-carregando", "tela-login", "tela-esqueci", "tela-nova-senha", "tela-casal", "app"]) $(id).hidden = id !== tela;
   }
   let toastT;
   function toast(txt) {
@@ -98,6 +98,47 @@
         "Não deu certo: " + m);
     } finally { $("login-btn").disabled = false; }
   });
+
+  // ---------------- recuperar senha ----------------
+  $("btn-esqueci").onclick = () => { $("esqueci-email").value = $("login-email").value; msg($("esqueci-msg"), ""); mostrar("tela-esqueci"); };
+  $("esqueci-voltar").onclick = () => mostrar("tela-login");
+  $("form-esqueci").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("esqueci-email").value.trim();
+    if (!email.includes("@")) return msg($("esqueci-msg"), "Digite um e-mail válido.");
+    $("esqueci-btn").disabled = true;
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    $("esqueci-btn").disabled = false;
+    if (error) return msg($("esqueci-msg"), /rate limit/i.test(error.message) ? "Muitas tentativas. Espere um minuto e tente de novo." : "Não deu certo: " + error.message);
+    msg($("esqueci-msg"), "Pronto! Se esse e-mail tiver conta, chega um link em alguns minutos (olhe o spam também). Abra o link neste celular.", true);
+  });
+  $("form-nova-senha").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const s1 = $("nova-senha").value, s2 = $("nova-senha2").value;
+    if (s1.length < 6) return msg($("nova-senha-msg"), "A senha precisa ter pelo menos 6 caracteres.");
+    if (s1 !== s2) return msg($("nova-senha-msg"), "As duas senhas não são iguais.");
+    $("nova-senha-btn").disabled = true;
+    const { error } = await sb.auth.updateUser({ password: s1 });
+    $("nova-senha-btn").disabled = false;
+    if (error) return msg($("nova-senha-msg"), /different from the old/i.test(error.message) ? "A senha nova precisa ser diferente da antiga." : "Não deu certo: " + error.message);
+    $("nova-senha").value = $("nova-senha2").value = "";
+    if (location.hash) history.replaceState(null, "", location.pathname);
+    iniciar();
+    setTimeout(() => toast("Senha trocada"), 600);
+  });
+  $("btn-trocar-senha").onclick = () => { msg($("nova-senha-msg"), ""); mostrar("tela-nova-senha"); };
+
+  // ---------------- apagar conta ----------------
+  $("apagar-confirma").addEventListener("input", (e) => ($("btn-apagar").disabled = e.target.value.trim().toUpperCase() !== "APAGAR"));
+  $("btn-apagar").onclick = async () => {
+    if ($("apagar-confirma").value.trim().toUpperCase() !== "APAGAR") return;
+    $("btn-apagar").disabled = true;
+    const { error } = await sb.rpc("caixa_apagar_conta", { p_apagar_dados: $("apagar-dados").checked });
+    if (error) { $("btn-apagar").disabled = false; return msg($("apagar-msg"), "Não foi possível apagar: " + error.message); }
+    await sb.auth.signOut().catch(() => {});
+    try { localStorage.clear(); } catch {}
+    location.reload();
+  };
 
   async function sair() { await sb.auth.signOut(); location.reload(); }
   $("btn-sair").onclick = sair;
@@ -463,6 +504,10 @@
     $("sal-falta").textContent = fmt(r.renda - entrou);
     $("sal-falta").classList.toggle("alerta", r.renda - entrou > 0);
 
+    $("apagar-info").textContent = st.membros >= 2
+      ? "O seu par continua usando o caixa e os dados ficam com ele, a não ser que você marque a opção abaixo."
+      : "Você é a única pessoa neste caixa, então todos os dados dele também serão apagados.";
+    $("apagar-dados-wrap").hidden = st.membros < 2;
     $("email-logado").textContent = st.user ? "Conectado como " + st.user.email : "";
     if (window.NC_gastos) window.NC_gastos.render(r);
   }
@@ -796,6 +841,7 @@
     const { data: { session } } = await sb.auth.getSession();
     st.user = session ? session.user : null;
     if (!st.user) return mostrar("tela-login");
+    if (recuperando) { recuperando = false; return mostrar("tela-nova-senha"); }
     try {
       st.casal = await carregarCasal();
     } catch (err) {
@@ -808,6 +854,10 @@
     await buscarTudo();
     ouvirMudancas();
   }
-  sb.auth.onAuthStateChange((evento) => { if (evento === "SIGNED_OUT") mostrar("tela-login"); });
+  let recuperando = /type=recovery/.test(location.hash);
+  sb.auth.onAuthStateChange((evento) => {
+    if (evento === "SIGNED_OUT") mostrar("tela-login");
+    if (evento === "PASSWORD_RECOVERY") { recuperando = true; mostrar("tela-nova-senha"); }
+  });
   iniciar();
 })();

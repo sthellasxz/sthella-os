@@ -1,6 +1,6 @@
 // Guarda os arquivos do app para abrir rápido e funcionar como app instalado.
 // Os dados (Supabase) sempre vêm da internet, nunca do cache.
-const VERSAO = "nc-v15";
+const VERSAO = "nc-v16";
 const ARQUIVOS = ["./", "index.html", "style.css", "app.js", "config.js", "extrato.js", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(VERSAO).then((c) => c.addAll(ARQUIVOS))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => {

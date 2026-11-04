@@ -49,8 +49,46 @@
       </div>
       <p class="msg" id="login-msg" hidden></p>
       <button class="btn primario" type="submit" id="login-btn">Entrar</button>
+      <button class="link" type="button" id="btn-esqueci">Esqueci minha senha</button>
     </form>
     <p class="nota">Cada um cria a sua conta. Depois, um de vocês cria o caixa e passa o código de convite para o outro.</p>
+  </div>
+</section>
+
+<!-- ============ RECUPERAR SENHA ============ -->
+<section id="tela-esqueci" class="tela-cheia" hidden>
+  <div class="auth">
+    <div class="marca-grande"><img src="icons/icon.svg" alt="" width="64" height="64"><span>Recuperar senha</span></div>
+    <p class="auth-sub">Digite o e-mail da sua conta. Vamos mandar um link para você criar uma senha nova.</p>
+    <form id="form-esqueci" class="form" novalidate>
+      <div class="campo">
+        <label for="esqueci-email">E-mail</label>
+        <input id="esqueci-email" type="email" autocomplete="email" inputmode="email" placeholder="voce@email.com">
+      </div>
+      <p class="msg" id="esqueci-msg" hidden></p>
+      <button class="btn primario" type="submit" id="esqueci-btn">Mandar link</button>
+    </form>
+    <button class="link" id="esqueci-voltar">Voltar para o login</button>
+  </div>
+</section>
+
+<!-- ============ NOVA SENHA ============ -->
+<section id="tela-nova-senha" class="tela-cheia" hidden>
+  <div class="auth">
+    <div class="marca-grande"><img src="icons/icon.svg" alt="" width="64" height="64"><span>Senha nova</span></div>
+    <p class="auth-sub">Escolha uma senha nova para a sua conta.</p>
+    <form id="form-nova-senha" class="form" novalidate>
+      <div class="campo">
+        <label for="nova-senha">Senha nova</label>
+        <input id="nova-senha" type="password" autocomplete="new-password" placeholder="Mínimo de 6 caracteres">
+      </div>
+      <div class="campo">
+        <label for="nova-senha2">Repita a senha nova</label>
+        <input id="nova-senha2" type="password" autocomplete="new-password">
+      </div>
+      <p class="msg" id="nova-senha-msg" hidden></p>
+      <button class="btn primario" type="submit" id="nova-senha-btn">Salvar senha nova</button>
+    </form>
   </div>
 </section>
 
@@ -494,8 +532,25 @@
       <div class="bloco">
         <div class="bloco-cab"><h2>Conta</h2></div>
         <p class="muted pequeno" id="email-logado"></p>
-        <button class="btn" id="btn-sair">Sair</button>
-        <p class="pequeno muted">Versão do app: 15 (gasto lançado sai do saldo)</p>
+        <div class="conta-acoes">
+          <button class="btn" id="btn-sair">Sair</button>
+          <button class="btn" id="btn-trocar-senha">Trocar senha</button>
+        </div>
+        <details class="apagar-box">
+          <summary>Apagar minha conta</summary>
+          <div class="apagar-corpo">
+            <p><b>Isso não tem volta.</b> Seu login é apagado e você sai do caixa.</p>
+            <p class="muted pequeno" id="apagar-info"></p>
+            <label class="chk" id="apagar-dados-wrap"><input type="checkbox" id="apagar-dados"> Apagar também todos os dados do caixa (contas, gastos, saldos). O seu par perde tudo.</label>
+            <div class="campo">
+              <label for="apagar-confirma">Para confirmar, digite APAGAR</label>
+              <input id="apagar-confirma" autocomplete="off" autocapitalize="characters" placeholder="APAGAR">
+            </div>
+            <p class="msg" id="apagar-msg" hidden></p>
+            <button class="btn perigo largo" id="btn-apagar" disabled>Apagar minha conta</button>
+          </div>
+        </details>
+        <p class="pequeno muted">Versão do app: 16 (recuperar senha e apagar conta)</p>
       </div>
     </section>
   </main>
