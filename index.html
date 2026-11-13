@@ -100,7 +100,16 @@
 
     <div class="cartao escolha">
       <h3>Sou o primeiro a entrar</h3>
-      <p class="muted">Cria um caixa novo e mostra um código de 6 letras para você mandar para o seu par.</p>
+      <p class="muted">Cria um caixa novo e mostra um código de 6 letras para você mandar para quem vai dividir com você.</p>
+      <div class="campo">
+        <label for="criar-nome-a">Seu nome</label>
+        <input id="criar-nome-a" maxlength="20" autocomplete="given-name" placeholder="Ex.: Ana">
+      </div>
+      <div class="campo">
+        <label for="criar-nome-b">Nome de quem vai dividir com você</label>
+        <input id="criar-nome-b" maxlength="20" autocomplete="off" placeholder="Ex.: Pedro">
+        <p class="ajuda">Pode ser namorado(a), marido, esposa, amigo(a)... Dá para mudar depois na aba Renda.</p>
+      </div>
       <button class="btn primario" id="btn-criar-casal">Criar nosso caixa</button>
     </div>
 
@@ -449,7 +458,7 @@
             <button type="button" class="sal-mini" data-recebeu="B" aria-pressed="false"><span class="sal-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="sal-status">Salário: ainda não recebeu</span></button>
             <div class="campo">
               <label for="nome-b">Nome</label>
-              <input id="nome-b" maxlength="20" placeholder="João">
+              <input id="nome-b" maxlength="20" placeholder="Nome da outra pessoa">
             </div>
             <div class="campo">
               <label for="renda-b">Ganha por mês</label>
@@ -550,7 +559,7 @@
             <button class="btn perigo largo" id="btn-apagar" disabled>Apagar minha conta</button>
           </div>
         </details>
-        <p class="pequeno muted">Versão do app: 16 (recuperar senha e apagar conta)</p>
+        <p class="pequeno muted">Versão do app: 17 (escolher os nomes ao criar o caixa)</p>
       </div>
     </section>
   </main>

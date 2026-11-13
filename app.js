@@ -38,7 +38,7 @@
   const st = {
     user: null, casal: null, codigo: "", membros: 0,
     mes: HOJE, aba: "inicio", visao: (() => { try { return localStorage.getItem("nc-visao") || "agora"; } catch { return "agora"; } })(), filtro: "todas",
-    config: { nome_a: "Eu", nome_b: "João", renda_a: 0, renda_b: 0, pct_guardar: 40, pct_lazer: 30 },
+    config: { nome_a: "", nome_b: "", renda_a: 0, renda_b: 0, pct_guardar: 40, pct_lazer: 30 },
     meses: {}, recebido: {}, saldoInfo: {}, banco: {}, ext: {}, contas: [], lancamentos: [], regras: {},
   };
 
@@ -151,10 +151,16 @@
     return data ? data.casal_id : null;
   }
   $("btn-criar-casal").onclick = async () => {
+    const nomeA = $("criar-nome-a").value.trim().slice(0, 20), nomeB = $("criar-nome-b").value.trim().slice(0, 20);
+    if (!nomeA) { $("criar-nome-a").focus(); return msg($("casal-msg"), "Escreva o seu nome."); }
+    if (!nomeB) { $("criar-nome-b").focus(); return msg($("casal-msg"), "Escreva o nome de quem vai dividir com você."); }
     $("btn-criar-casal").disabled = true;
     const { error } = await sb.rpc("caixa_criar_casal");
+    if (error) { $("btn-criar-casal").disabled = false; return msg($("casal-msg"), "Não foi possível criar: " + error.message); }
+    // grava os nomes escolhidos no caixa novo
+    const casal = await carregarCasal().catch(() => null);
+    if (casal) await sb.from("caixa_config").update({ nome_a: nomeA, nome_b: nomeB }).eq("casal_id", casal);
     $("btn-criar-casal").disabled = false;
-    if (error) return msg($("casal-msg"), "Não foi possível criar: " + error.message);
     iniciar();
   };
   $("form-codigo").addEventListener("submit", async (e) => {
